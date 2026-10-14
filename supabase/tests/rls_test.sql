@@ -113,4 +113,21 @@ select pg_temp.check(exists (select 1 from realtime.sent where topic = 'campaign
 update public.scenes set data = jsonb_build_object('fog', (select jsonb_agg(g) from generate_series(1, 40000) g)) where id = '22222222-2222-2222-2222-222222222222';
 select pg_temp.check((select payload->>'op' from realtime.sent where payload->'row'->>'id' = '22222222-2222-2222-2222-222222222222' order by ctid desc limit 1) = 'refresh', 'linha grande vira aviso refresh');
 
+-- passar turno: só o dono do token da vez (ou o mestre)
+update public.scenes set data = jsonb_build_object('combat', jsonb_build_object('active', true, 'round', 1, 'turn', 0, 'combatants', jsonb_build_array(
+  jsonb_build_object('id', 'a', 'token_id', '77777777-7777-7777-7777-777777777777', 'initiative', 20),
+  jsonb_build_object('id', 'b', 'token_id', '33333333-3333-3333-3333-333333333331', 'initiative', 10))))
+  where id = '22222222-2222-2222-2222-222222222222';
+select pg_temp.login('00000000-0000-0000-0000-00000000000b');
+select public.end_turn('22222222-2222-2222-2222-222222222222');
+reset role;
+select pg_temp.check((select (data->'combat'->>'turn')::int from public.scenes where id = '22222222-2222-2222-2222-222222222222') = 1, 'jogador encerra o próprio turno');
+select pg_temp.login('00000000-0000-0000-0000-00000000000b');
+select pg_temp.check(pg_temp.fails($q$select public.end_turn('22222222-2222-2222-2222-222222222222')$q$), 'jogador não encerra turno alheio');
+reset role;
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+select public.end_turn('22222222-2222-2222-2222-222222222222');
+reset role;
+select pg_temp.check((select (data->'combat'->>'round')::int from public.scenes where id = '22222222-2222-2222-2222-222222222222') = 2, 'mestre passa turno e começa nova rodada');
+
 rollback;

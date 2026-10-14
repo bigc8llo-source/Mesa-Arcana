@@ -59,6 +59,9 @@ export interface Backend {
   upsert<T extends TableName>(table: T, row: Collections[T]): Promise<void>
   remove<T extends TableName>(table: T, row: Collections[T]): Promise<void>
 
+  /** Passa o turno do combate da cena (mestre ou dono do token da vez). */
+  endTurn(sceneId: string): Promise<void>
+
   uploadAsset(campaignId: string, kind: string, file: Blob, ext: string): Promise<string>
   /** Converte a URL armazenada em algo que o navegador consegue carregar. */
   resolveUrl(url: string): Promise<string>

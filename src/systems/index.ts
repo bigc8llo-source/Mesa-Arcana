@@ -1,6 +1,7 @@
 import type { Character } from '../types'
 import { formatMod } from '../engine/dice'
 import { uid } from '../lib/id'
+import { tormenta20 } from './tormenta20'
 
 /** Uma ação rolável exibida na ficha e no menu do token. */
 export interface Rollable {
@@ -254,7 +255,7 @@ export const generic: SystemDef = {
   summary: (raw) => asGeneric(raw).concept || 'Personagem',
 }
 
-export const SYSTEMS: Record<string, SystemDef> = { dnd5e, generico: generic }
+export const SYSTEMS: Record<string, SystemDef> = { tormenta20, dnd5e, generico: generic }
 export function systemOf(c: Pick<Character, 'system_id'> | { system_id: string }): SystemDef {
   return SYSTEMS[c.system_id] ?? generic
 }

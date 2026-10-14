@@ -20,6 +20,7 @@ import {
   type GenericSheet,
 } from '../systems'
 import { formatMod } from '../engine/dice'
+import { asT20, halfLevel, t20Defense, t20mod, t20Resources, t20Skill, trainingBonus, T20_ATTRS, T20_CLASSES, T20_RACES, T20_SKILLS, type T20Sheet } from '../systems/tormenta20'
 import { placeToken, rollDice } from '../game/actions'
 import { uid } from '../lib/id'
 import { Portrait, SpriteAnimator, TiltCard, type SpriteAnimName } from './SpriteView'
@@ -376,6 +377,230 @@ function GenericSheetView({ sheet, patch, editable, roll }: { sheet: GenericShee
   )
 }
 
+// ============================================================ Tormenta20
+
+function T20SheetView({ c, sheet, patch, editable, roll }: { c: Character; sheet: T20Sheet; patch: Patch; editable: boolean; roll: ReturnType<typeof useRoller> }) {
+  const set = <K extends keyof T20Sheet>(k: K, v: T20Sheet[K]) => patch((s) => ({ ...s, [k]: v }))
+  const recalc = (next: Partial<T20Sheet>) =>
+    patch((s) => {
+      const merged = { ...asT20(s), ...next }
+      const r = t20Resources(merged.class, merged.level, merged.attrs.con)
+      return { ...s, ...next, pv_max: r.pv, pm_max: r.pm, pv: Math.min(merged.pv, r.pv) || r.pv, pm: Math.min(merged.pm, r.pm) || r.pm }
+    })
+  return (
+    <div className="grid gap-3 lg:grid-cols-3">
+      <div className="space-y-3">
+        <Section title="Personagem">
+          <div className="grid grid-cols-2 gap-2">
+            {c.kind !== 'monster' ? (
+              <>
+                <Field label="Raça">
+                  <Select disabled={!editable} value={sheet.race} onChange={(e) => set('race', e.target.value)}>
+                    {[sheet.race, ...T20_RACES.filter((r) => r !== sheet.race)].map((r) => (
+                      <option key={r}>{r}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Classe">
+                  <Select disabled={!editable} value={sheet.class} onChange={(e) => recalc({ class: e.target.value })}>
+                    {Object.keys(T20_CLASSES).map((r) => (
+                      <option key={r}>{r}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Nível">
+                  <NumberInput disabled={!editable} value={sheet.level} onChange={(v) => recalc({ level: Math.max(1, Math.min(20, v)) })} />
+                </Field>
+                <Field label="Origem">
+                  <Input disabled={!editable} value={sheet.origin} onChange={(e) => set('origin', e.target.value)} />
+                </Field>
+                <Field label="Divindade">
+                  <Input disabled={!editable} value={sheet.deity} onChange={(e) => set('deity', e.target.value)} />
+                </Field>
+              </>
+            ) : (
+              <Field label="ND">
+                <Input disabled={!editable} value={sheet.nd ?? ''} onChange={(e) => set('nd', e.target.value)} />
+              </Field>
+            )}
+          </div>
+        </Section>
+        <Section title="Atributos">
+          <div className="grid grid-cols-3 gap-2">
+            {T20_ATTRS.map((a) => (
+              <div key={a.key} className="rounded-lg border border-ink-600 bg-ink-900 p-1.5 text-center">
+                <p className="text-[10px] font-bold tracking-widest text-parch-300">{a.label}</p>
+                <p className="font-display text-xl font-extrabold text-gold-400">{formatMod(t20mod(sheet.attrs[a.key]))}</p>
+                <NumberInput
+                  disabled={!editable}
+                  className="mt-1 py-0 text-xs"
+                  value={sheet.attrs[a.key]}
+                  onChange={(v) => {
+                    const attrs = { ...sheet.attrs, [a.key]: Math.max(1, Math.min(30, v)) }
+                    if (a.key === 'con') recalc({ attrs })
+                    else set('attrs', attrs)
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-center text-xs text-parch-300">
+            ½ nível <b className="text-gold-400">+{halfLevel(sheet.level)}</b> · treino <b className="text-gold-400">+{trainingBonus(sheet.level)}</b>
+          </p>
+        </Section>
+        <Section title="Defesa">
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <Field label="Armadura+escudo">
+              <NumberInput disabled={!editable} value={sheet.defense_armor} onChange={(v) => set('defense_armor', v)} />
+            </Field>
+            <Field label="Outros">
+              <NumberInput disabled={!editable} value={sheet.defense_other} onChange={(v) => set('defense_other', v)} />
+            </Field>
+            <Field label="Penalidade">
+              <NumberInput disabled={!editable} value={sheet.armor_penalty} onChange={(v) => set('armor_penalty', Math.max(0, v))} />
+            </Field>
+          </div>
+          <p className="mt-2 text-center text-sm">
+            Defesa <b className="font-display text-2xl text-gold-400">{t20Defense(sheet)}</b>
+          </p>
+        </Section>
+      </div>
+
+      <div className="space-y-3">
+        <Section title="Perícias">
+          <p className="mb-1 text-[11px] text-parch-300">Marque as treinadas. Clique no nome para rolar.</p>
+          {T20_SKILLS.map((sk) => {
+            const tr = sheet.trained.includes(sk.key)
+            const v = t20Skill(sheet, sk.key)
+            return (
+              <div key={sk.key} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  disabled={!editable}
+                  className="accent-arcane-500"
+                  checked={tr}
+                  title="Treinada"
+                  onChange={(e) => set('trained', e.target.checked ? [...sheet.trained, sk.key] : sheet.trained.filter((x) => x !== sk.key))}
+                />
+                <div className={cn('flex-1', sk.onlyTrained && !tr && 'opacity-40')}>
+                  <RollBtn small label={`${sk.label} (${T20_ATTRS.find((a) => a.key === sk.attr)!.label})`} bonus={v} onRoll={() => roll(`1d20${formatMod(v)}`, sk.label, 'cast')} />
+                </div>
+              </div>
+            )
+          })}
+        </Section>
+      </div>
+
+      <div className="space-y-3">
+        <Section
+          title="Ataques"
+          action={
+            editable && (
+              <Button size="sm" variant="ghost" onClick={() => set('attacks', [...sheet.attacks, { id: uid(), name: 'Novo ataque', skill: 'luta', damage: '1d6', crit: '20/x2', extra: 0 }])}>
+                <Plus size={14} />
+              </Button>
+            )
+          }
+        >
+          <div className="space-y-2">
+            {sheet.attacks.map((a, i) => {
+              const bonus = t20Skill(sheet, a.skill) + a.extra
+              const upd = (p: Partial<T20Sheet['attacks'][number]>) => set('attacks', sheet.attacks.map((x, j) => (j === i ? { ...x, ...p } : x)))
+              return (
+                <div key={a.id} className="rounded-lg border border-ink-700 p-2">
+                  <div className="flex items-center gap-1">
+                    {editable ? <Input className="py-1" value={a.name} onChange={(e) => upd({ name: e.target.value })} /> : <p className="flex-1 font-semibold">{a.name}</p>}
+                    {editable && (
+                      <button type="button" className="p-1 text-ink-500 hover:text-red-400" onClick={() => set('attacks', sheet.attacks.filter((x) => x.id !== a.id))} aria-label="Remover">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                  {editable && (
+                    <div className="mt-1 grid grid-cols-3 gap-1 text-xs">
+                      <Select className="py-1 text-xs" value={a.skill} onChange={(e) => upd({ skill: e.target.value as 'luta' | 'pontaria' })}>
+                        <option value="luta">Luta</option>
+                        <option value="pontaria">Pontaria</option>
+                      </Select>
+                      <Input className="py-1 font-mono text-xs" title="Dano" value={a.damage} onChange={(e) => upd({ damage: e.target.value })} />
+                      <Input className="py-1 font-mono text-xs" title="Crítico" value={a.crit} onChange={(e) => upd({ crit: e.target.value })} />
+                    </div>
+                  )}
+                  <div className="mt-1.5 flex gap-1">
+                    <Button size="sm" variant="primary" className="flex-1" onClick={() => roll(`1d20${formatMod(bonus)}`, `Ataque: ${a.name} (crít. ${a.crit})`)}>
+                      Ataque {formatMod(bonus)}
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => roll(a.damage, `Dano: ${a.name}`)}>
+                      Dano {a.damage}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+        <Section
+          title="Poderes e magias"
+          action={
+            editable && (
+              <Button size="sm" variant="ghost" onClick={() => set('powers', [...sheet.powers, { id: uid(), name: 'Novo poder', cost: 1, notation: '', description: '' }])}>
+                <Plus size={14} />
+              </Button>
+            )
+          }
+        >
+          <div className="space-y-1.5">
+            {sheet.powers.length === 0 && <p className="text-xs text-parch-300">Nenhum poder.</p>}
+            {sheet.powers.map((p, i) => {
+              const upd = (q: Partial<T20Sheet['powers'][number]>) => set('powers', sheet.powers.map((x, j) => (j === i ? { ...x, ...q } : x)))
+              return (
+                <div key={p.id} className="rounded-lg border border-ink-700 p-2 text-sm">
+                  {editable ? (
+                    <div className="space-y-1">
+                      <div className="flex gap-1">
+                        <Input className="py-1" value={p.name} onChange={(e) => upd({ name: e.target.value })} />
+                        <NumberInput className="!w-14" title="Custo em PM" value={p.cost} onChange={(v) => upd({ cost: Math.max(0, v) })} />
+                        <button type="button" className="p-1 text-ink-500 hover:text-red-400" onClick={() => set('powers', sheet.powers.filter((x) => x.id !== p.id))} aria-label="Remover">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <Input className="py-1 font-mono text-xs" placeholder="Dados (ex.: 2d6)" value={p.notation} onChange={(e) => upd({ notation: e.target.value })} />
+                      <Textarea rows={2} className="text-xs" value={p.description} onChange={(e) => upd({ description: e.target.value })} />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="font-semibold">
+                        {p.name} <span className="text-xs text-sky-300">{p.cost} PM</span>
+                      </p>
+                      <p className="text-xs text-parch-300">{p.description}</p>
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="mt-1 w-full"
+                    disabled={sheet.pm < p.cost}
+                    onClick={() => {
+                      if (p.cost > 0) patch((s) => ({ ...s, pm: Math.max(0, asT20(s).pm - p.cost) }))
+                      if (p.notation) roll(p.notation, `${p.name} (−${p.cost} PM)`, 'cast')
+                    }}
+                  >
+                    <Sparkles size={12} /> Usar {p.cost > 0 ? `(${p.cost} PM)` : ''}
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+        <Section title="Inventário e notas">
+          <Textarea disabled={!editable} rows={3} placeholder="Equipamento, T$, itens…" value={sheet.inventory} onChange={(e) => set('inventory', e.target.value)} />
+          <Textarea disabled={!editable} rows={3} className="mt-2" placeholder="Anotações" value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
+        </Section>
+      </div>
+    </div>
+  )
+}
+
 // ============================================================ Modal
 
 export function SheetModal() {
@@ -458,6 +683,27 @@ function SheetBody({ c, onClose }: { c: Character; onClose: () => void }) {
 
         <div className="rounded-xl border border-ink-700 p-3 space-y-2">
           <HpBar hp={hp.hp} max={hp.max} temp={hp.temp} className="h-3" />
+          {c.system_id === 'tormenta20' && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-sky-300">PM</span>
+              <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-ink-700">
+                <div className="h-full bg-sky-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, asT20(sheet).pm / Math.max(1, asT20(sheet).pm_max))) * 100}%` }} />
+              </div>
+              <span>
+                {asT20(sheet).pm}/{asT20(sheet).pm_max}
+              </span>
+              {editable && (
+                <>
+                  <button type="button" className="rounded bg-ink-700 px-1.5" onClick={() => patch((s) => ({ ...s, pm: Math.max(0, asT20(s).pm - 1) }))}>
+                    −
+                  </button>
+                  <button type="button" className="rounded bg-ink-700 px-1.5" onClick={() => patch((s) => ({ ...s, pm: Math.min(asT20(s).pm_max, asT20(s).pm + 1) }))}>
+                    +
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           {editable && (
             <>
               <div className="flex items-center gap-1">
@@ -471,10 +717,10 @@ function SheetBody({ c, onClose }: { c: Character; onClose: () => void }) {
               </div>
               <div className="grid grid-cols-3 gap-1 text-xs">
                 <Field label="PV">
-                  <NumberInput value={hp.hp} onChange={(v) => patch((s) => ({ ...s, hp: v }))} />
+                  <NumberInput value={hp.hp} onChange={(v) => patch((s) => ({ ...s, [c.system_id === 'tormenta20' ? 'pv' : 'hp']: v }))} />
                 </Field>
                 <Field label="Máx">
-                  <NumberInput value={hp.max} onChange={(v) => patch((s) => ({ ...s, hp_max: v }))} />
+                  <NumberInput value={hp.max} onChange={(v) => patch((s) => ({ ...s, [c.system_id === 'tormenta20' ? 'pv_max' : 'hp_max']: v }))} />
                 </Field>
                 {c.system_id === 'dnd5e' ? (
                   <Field label="Temp">
@@ -540,7 +786,9 @@ function SheetBody({ c, onClose }: { c: Character; onClose: () => void }) {
       </div>
 
       <div className="min-w-0">
-        {c.system_id === 'dnd5e' ? (
+        {c.system_id === 'tormenta20' ? (
+          <T20SheetView c={c} sheet={asT20(sheet)} patch={patch} editable={editable} roll={roll} />
+        ) : c.system_id === 'dnd5e' ? (
           <DndSheet c={c} sheet={asDnd(sheet)} patch={patch} editable={editable} roll={roll} />
         ) : (
           <GenericSheetView sheet={asGeneric(sheet)} patch={patch} editable={editable} roll={roll} />

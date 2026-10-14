@@ -29,3 +29,28 @@ export const MONSTERS: MonsterEntry[] = [
   { key: 'urso-coruja', name: 'Urso-Coruja', cr: '3', sprite: 'barbaro', size: 2, sheet: { abilities: ab(20, 12, 17, 3, 12, 7), ac: 13, hp: 59, hp_max: 59, speed: 12, skills: { percepcao: 1 }, attacks: [atk('Bico', 7, '1d10+5', 'perfurante'), atk('Garras', 7, '2d8+5', 'cortante')], features: 'Ataques múltiplos: bico e garras.' } },
   { key: 'gosma', name: 'Gosma Ocre', cr: '2', sprite: 'slime', size: 2, sheet: { abilities: ab(15, 6, 14, 2, 6, 1), ac: 8, hp: 45, hp_max: 45, speed: 3, attacks: [atk('Pseudópode', 4, '2d6+2', 'concussão + 1d6 ácido')], features: 'Amorfo. Divide-se ao sofrer dano cortante ou elétrico.' } },
 ]
+
+/** Ficha da criatura no sistema da campanha. */
+export function monsterSheet(systemId: string, m: MonsterEntry): Record<string, unknown> {
+  const hp = m.sheet.hp ?? 10
+  if (systemId === 'dnd5e') return { ...m.sheet, cr: m.cr, size: m.size }
+  if (systemId === 'tormenta20') {
+    const a = m.sheet.abilities ?? { for: 10, des: 10, con: 10, int: 10, sab: 10, car: 10 }
+    const des = Math.floor((a.des - 10) / 2)
+    return {
+      nd: m.cr,
+      size: m.size,
+      attrs: a,
+      pv: hp,
+      pv_max: hp,
+      pm: 0,
+      pm_max: 0,
+      defense_other: (m.sheet.ac ?? 10) - 10 - des,
+      attacks: (m.sheet.attacks ?? []).map((x) => ({ id: x.id, name: x.name, skill: 'luta', damage: x.damage, crit: '20/x2', extra: x.bonus - Math.floor((a.for - 10) / 2) })),
+      trained: ['luta', 'percepcao'],
+      race: m.name,
+      class: 'Criatura',
+    }
+  }
+  return { hp, hp_max: hp, defense: m.sheet.ac, size: m.size }
+}

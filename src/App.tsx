@@ -6,6 +6,7 @@ import { HomePage, InvitePage } from './pages/Home'
 import { Spinner } from './components/ui'
 
 const TablePage = lazy(() => import('./pages/TablePage'))
+const LobbyPage = lazy(() => import('./pages/LobbyPage'))
 
 function Loading({ text = 'Carregando…' }: { text?: string }) {
   return (
@@ -36,7 +37,8 @@ export function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/convite/:code" element={<InvitePage />} />
-          <Route path="/c/:id" element={<TablePage />} />
+          <Route path="/c/:id" element={<LobbyPage />} />
+          <Route path="/c/:id/mesa" element={<TablePage />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
       </Suspense>

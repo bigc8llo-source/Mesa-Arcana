@@ -12,6 +12,8 @@ export interface Campaign {
   owner_id: string
   invite_code: string
   active_scene_id: string | null
+  /** Sessão de jogo: o mestre prepara tudo e depois "abre a mesa". */
+  session?: { live: boolean; number: number; started_at?: string }
   updated_at?: string
 }
 

@@ -3,9 +3,9 @@ import { LocalBackend } from './localBackend'
 import { SupabaseBackend } from './supabaseBackend'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
 
-export const supabaseConfigured = !!(url && key && !url.includes('SEU-PROJETO'))
+export const supabaseConfigured = !!(url && key && /^https?:\/\//.test(url) && !url.includes('SEU-PROJETO'))
 
 const FORCE_LOCAL_KEY = 'mesa-arcana:force-local'
 

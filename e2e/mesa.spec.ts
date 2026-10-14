@@ -17,12 +17,16 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await login(gm, 'Mestre')
   await gm.getByRole('button', { name: 'Nova campanha' }).click()
   await gm.getByRole('button', { name: 'Criar e abrir a mesa' }).click()
+  await expect(gm.getByTestId('start-session')).toBeVisible()
+  // aventura de exemplo pronta: 4 heróis + 3 tipos de monstro + mensagem de boas-vindas
+  await expect.poll(() => gm.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('mesa-arcana:tokens') || '{}')).length), { timeout: 60_000 }).toBe(9)
+  await expect.poll(() => gm.evaluate(() => Object.values(JSON.parse(localStorage.getItem('mesa-arcana:chat') || '{}')).length), { timeout: 30_000 }).toBeGreaterThan(0)
+  const code = (await gm.getByTestId('invite-code').textContent())!.trim()
+  await gm.getByTestId('start-session').click()
   await expect(gm.getByTestId('theater-view')).toBeVisible({ timeout: 60_000 })
-  await expect(gm.getByText('Preparando a aventura', { exact: false })).toHaveCount(0, { timeout: 60_000 })
   await gm.screenshot({ path: 'test-results/01-mestre-teatro.png' })
 
   // código de convite
-  const code = (await gm.locator('header button[title="Copiar link de convite"] span.font-mono').textContent())!.trim()
   expect(code).toMatch(/^[A-Z0-9]{6}$/)
 
   const pl = await context.newPage()
@@ -30,6 +34,7 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await pl.goto(`/convite/${code}`)
   await login(pl, 'Ana')
   await pl.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await pl.getByTestId('enter-table').click()
   await expect(pl.getByTestId('theater-view')).toBeVisible()
 
   // jogadora assume uma heroína

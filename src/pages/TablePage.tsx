@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Box,
@@ -33,13 +33,15 @@ import { Button, cn, IconButton, Modal, Spinner, Tabs } from '../components/ui'
 import { MapView } from '../table/MapView'
 import { TheaterView } from '../table/TheaterView'
 import { TokenMenu } from '../table/TokenMenu'
+import { TurnBar } from '../table/TurnBar'
 import { DiceOverlay } from '../dice/DiceOverlay'
 import { ChatPanel } from '../panels/ChatPanel'
 import { CharactersPanel } from '../panels/CharactersPanel'
 import { CombatPanel } from '../panels/CombatPanel'
 import { ScenesPanel } from '../panels/ScenesPanel'
 import { SheetModal } from '../characters/SheetModal'
-import { canControl, changeHp, defaultScene, seedSampleCampaign } from '../game/actions'
+import { canControl, changeHp } from '../game/actions'
+import { useCampaignBootstrap } from '../game/bootstrap'
 import { useCamRequests } from '../table/camera'
 import { VFX_LIST } from '../table/Effects'
 import { useAssetUrl } from '../lib/images'
@@ -60,7 +62,7 @@ const TOOLS: { id: Tool; label: string; key: string; icon: React.ReactNode; gm?:
   { id: 'light', label: 'Luzes (L)', key: 'l', icon: <Lightbulb size={18} />, gm: true },
 ]
 
-function ToolOptionsBar() {
+function ToolOptionsBar({ below }: { below: boolean }) {
   const tool = useGame((s) => s.tool)
   const o = useToolOptions()
   const chip = (active: boolean) => cn('rounded-md px-2 py-1 text-xs', active ? 'bg-arcane-600 text-white' : 'bg-ink-700 hover:bg-ink-600')
@@ -147,7 +149,11 @@ function ToolOptionsBar() {
       </>
     )
   if (!content) return null
-  return <div className="panel pointer-events-auto absolute left-1/2 top-3 z-20 flex max-w-[calc(100%-7rem)] -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl px-3 py-2 shadow-xl">{content}</div>
+  return (
+    <div className={cn('panel pointer-events-auto absolute left-1/2 z-20 flex max-w-[calc(100%-7rem)] -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl px-3 py-2 shadow-xl', below ? 'top-20' : 'top-3')}>
+      {content}
+    </div>
+  )
 }
 
 function TopBar({ panelOpen, onTogglePanel, onHelp }: { panelOpen: boolean; onTogglePanel: () => void; onHelp: () => void }) {
@@ -170,7 +176,7 @@ function TopBar({ panelOpen, onTogglePanel, onHelp }: { panelOpen: boolean; onTo
   const link = `${location.origin}/convite/${campaign.invite_code}`
   return (
     <header className="panel relative z-30 flex h-12 shrink-0 items-center gap-2 border-x-0 border-t-0 px-2">
-      <IconButton label="Voltar às campanhas" onClick={() => nav('/')}>
+      <IconButton label="Voltar ao saguão da campanha" onClick={() => nav(`/c/${campaign.id}`)}>
         <ArrowLeft size={18} />
       </IconButton>
       <div className="min-w-0">
@@ -351,13 +357,11 @@ function useShortcuts() {
 
 export default function TablePage() {
   const { id = '' } = useParams()
-  const [params, setParams] = useSearchParams()
   const nav = useNavigate()
   const user = useGame((s) => s.user)
   const loading = useGame((s) => s.loading)
   const error = useGame((s) => s.error)
   const campaign = useGame((s) => s.campaign)
-  const campaignId = useGame((s) => s.campaignId)
   const scene = useScene()
   const me = useMe()
   const gm = useIsGm()
@@ -365,7 +369,18 @@ export default function TablePage() {
   const [tab, setTab] = useState<PanelTab>('chat')
   const [panelOpen, setPanelOpen] = useState(() => innerWidth > 900)
   const [help, setHelp] = useState(false)
-  const [seeding, setSeeding] = useState<string | null>(null)
+  const [panelW, setPanelWState] = useState(() => {
+    const saved = Number(localStorage.getItem('mesa-arcana:panel-w'))
+    return saved >= 300 ? saved : Math.min(420, Math.max(340, innerWidth * 0.28))
+  })
+  const setPanelW = (w: number) => {
+    setPanelWState(w)
+    try {
+      localStorage.setItem('mesa-arcana:panel-w', String(Math.round(w)))
+    } catch {
+      /* sem armazenamento */
+    }
+  }
   const unread = useRef(0)
   useShortcuts()
 
@@ -377,29 +392,7 @@ export default function TablePage() {
     window.addEventListener('open-help', f)
     return () => window.removeEventListener('open-help', f)
   }, [])
-  useEffect(() => {
-    if (!user) return
-    void useGame.getState().enter(id)
-    return () => useGame.getState().leave()
-  }, [id, user])
-
-  // campanha nova: semeia exemplo ou cria a primeira cena
-  useEffect(() => {
-    if (!campaign || campaignId !== id || !me || me.role !== 'gm' || loading) return
-    const s = useGame.getState()
-    if (Object.keys(s.scenes).length > 0) return
-    if (params.get('exemplo') === '1') {
-      setParams({}, { replace: true })
-      setSeeding('Preparando a aventura…')
-      seedSampleCampaign(setSeeding)
-        .catch((e) => s.set({ error: (e as Error).message }))
-        .finally(() => setSeeding(null))
-    } else if (!seeding) {
-      const sc = defaultScene(id, 'Primeira cena')
-      void s.save('scenes', sc).then(() => s.patch('campaigns', id, { active_scene_id: sc.id }))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaign?.id, campaignId, me?.role, loading])
+  const seeding = useCampaignBootstrap(id)
 
   // presença
   useEffect(() => {
@@ -487,7 +480,8 @@ export default function TablePage() {
               ))}
             </nav>
           )}
-          {scene?.kind === 'map' && <ToolOptionsBar />}
+          {scene?.kind === 'map' && <TurnBar scene={scene} />}
+          {scene?.kind === 'map' && <ToolOptionsBar below={scene.combat.active} />}
           {scene?.kind === 'map' && <SelectionBar />}
           {seeding && (
             <div className="absolute inset-0 z-40 grid place-items-center bg-black/60 backdrop-blur-sm">
@@ -499,11 +493,27 @@ export default function TablePage() {
         </main>
         <aside
           className={cn(
-            'panel z-20 flex w-[340px] max-w-[92vw] shrink-0 flex-col border-y-0 border-r-0 transition-[margin] duration-200',
+            'panel relative z-20 flex max-w-[92vw] shrink-0 flex-col border-y-0 border-r-0',
             'max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:shadow-2xl',
-            !panelOpen && 'max-md:hidden md:-mr-[340px]',
+            !panelOpen && 'hidden',
           )}
+          style={{ width: panelW }}
         >
+          <div
+            className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-arcane-500/40 max-md:hidden"
+            title="Arraste para ajustar a largura"
+            onPointerDown={(e) => {
+              const startX = e.clientX
+              const startW = panelW
+              const move = (ev: PointerEvent) => setPanelW(Math.max(300, Math.min(innerWidth * 0.6, startW + startX - ev.clientX)))
+              const up = () => {
+                removeEventListener('pointermove', move)
+                removeEventListener('pointerup', up)
+              }
+              addEventListener('pointermove', move)
+              addEventListener('pointerup', up)
+            }}
+          />
           <Tabs tabs={tabs} value={tab} onChange={setTab} />
           <div className="min-h-0 flex-1">
             {tab === 'chat' && <ChatPanel />}

@@ -5,9 +5,10 @@ import { activeSceneId, useGame, useIsGm } from '../store/game'
 import { Button, cn, Empty, Field, HpBar, Input, Modal, Select, Spinner } from '../components/ui'
 import { Portrait } from '../characters/SpriteView'
 import { systemOf, SYSTEMS } from '../systems'
-import { MONSTERS } from '../systems/monsters'
+import { MONSTERS, monsterSheet } from '../systems/monsters'
 import { SpriteEditor, type SpriteChoice } from '../characters/SpriteEditor'
 import { resolveSpriteChoice } from '../characters/spriteActions'
+import { CharacterWizard } from '../characters/CharacterWizard'
 import { DEFAULT_RECIPE, RECIPE_PRESETS } from '../engine/sprites'
 import { createCharacter, placeToken } from '../game/actions'
 import { PLAYER_COLORS, uid } from '../lib/id'
@@ -130,7 +131,8 @@ export function CharactersPanel() {
         )}
         {Object.values(characters).length > 0 && <p className="px-1 text-[11px] text-ink-500">Dica: arraste um personagem para o mapa para criar o token.</p>}
       </div>
-      {creating && <CreateCharacterModal kind={creating} onClose={() => setCreating(null)} />}
+      {creating && (gm || creating !== 'pc') && <CreateCharacterModal kind={creating} onClose={() => setCreating(null)} />}
+      <CharacterWizard open={creating === 'pc' && !gm} onClose={() => setCreating(null)} onCreated={(c) => useGame.getState().set({ openSheetId: c.id })} />
       <CompendiumModal open={compendium} onClose={() => setCompendium(false)} />
     </div>
   )
@@ -204,7 +206,6 @@ function CompendiumModal({ open, onClose }: { open: boolean; onClose: () => void
   const [busy, setBusy] = useState<string | null>(null)
   const [qty, setQty] = useState(1)
   const list = MONSTERS.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()))
-  const dnd = campaign?.system_id === 'dnd5e'
   return (
     <Modal open={open} onClose={onClose} title="Bestiário (SRD 5.2)">
       <div className="mb-3 flex gap-2">
@@ -245,7 +246,7 @@ function CompendiumModal({ open, onClose }: { open: boolean; onClose: () => void
                       color: '#7f1d1d',
                       ownerId: null,
                       hidden: true,
-                      sheet: dnd ? { ...m.sheet, cr: m.cr, size: m.size } : { hp: m.sheet.hp, hp_max: m.sheet.hp_max, defense: m.sheet.ac, size: m.size },
+                      sheet: monsterSheet(campaign?.system_id ?? 'generico', m),
                     }))
                   const sid = activeSceneId(s)
                   const sc = sid ? s.scenes[sid] : null

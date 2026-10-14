@@ -132,7 +132,7 @@ export function Modal({ open, onClose, title, children, wide, className }: { ope
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { id: T; label: string; icon?: ReactNode; badge?: number }[]; value: T; onChange: (v: T) => void }) {
   return (
-    <div role="tablist" className="flex gap-1 border-b border-ink-700 px-2">
+    <div role="tablist" className="flex border-b border-ink-700">
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -141,13 +141,13 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { id: 
           onClick={() => onChange(t.id)}
           title={t.label}
           className={cn(
-            'relative flex items-center gap-1.5 px-2.5 py-2.5 text-xs font-semibold uppercase tracking-wide transition',
+            'relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-semibold uppercase tracking-wide transition',
             value === t.id ? 'text-gold-400' : 'text-parch-300 hover:text-parch-100',
           )}
         >
           {t.icon}
-          <span className="hidden xl:inline">{t.label}</span>
-          {!!t.badge && <span className="rounded-full bg-arcane-600 px-1.5 text-[10px] text-white">{t.badge}</span>}
+          <span className="max-w-full truncate">{t.label}</span>
+          {!!t.badge && <span className="absolute right-1 top-1 rounded-full bg-arcane-600 px-1.5 text-[10px] text-white">{t.badge}</span>}
           {value === t.id && <span className="absolute inset-x-1 -bottom-px h-0.5 rounded bg-gold-400" />}
         </button>
       ))}

@@ -153,6 +153,11 @@ export class SupabaseBackend implements Backend {
     if (error) throw error
   }
 
+  async endTurn(sceneId: string) {
+    const { error } = await this.client.rpc('end_turn', { p_scene: sceneId })
+    if (error) throw new Error(error.message.includes('not your turn') ? 'Não é a sua vez.' : error.message)
+  }
+
   async uploadAsset(campaignId: string, kind: string, file: Blob, ext: string) {
     const path = `${campaignId}/${kind}/${uid()}.${ext}`
     const { error } = await this.client.storage.from('assets').upload(path, file, {

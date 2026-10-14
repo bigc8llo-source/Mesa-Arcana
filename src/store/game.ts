@@ -61,6 +61,8 @@ interface GameState {
 }
 
 let sub: CampaignSubscription | null = null
+/** Cada entrada/saída incrementa; respostas de carregamentos antigos são descartadas. */
+let epoch = 0
 
 const TABLE_KEYS: Record<TableName, keyof GameState> = {
   campaigns: 'campaign',
@@ -104,13 +106,16 @@ export const useGame = create<GameState>((set, get) => ({
     const user = get().user
     if (!user) return
     sub?.close()
+    sub = null
+    const my = ++epoch
     set({ campaignId, loading: true, error: null, status: 'connecting', viewSceneId: null, selected: [] })
     try {
       await get().reload()
     } catch (e) {
-      set({ loading: false, error: (e as Error).message })
+      if (my === epoch) set({ loading: false, error: (e as Error).message })
       return
     }
+    if (my !== epoch) return
     const me = get().members[`${campaignId}:${user.id}`]
     if (!me) {
       set({ loading: false, error: 'Você não faz parte desta campanha.' })
@@ -136,6 +141,7 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   leave: () => {
+    epoch++
     sub?.close()
     sub = null
     set({ campaignId: null, campaign: null, members: {}, characters: {}, scenes: {}, tokens: {}, chat: {}, presence: [] })
@@ -144,6 +150,7 @@ export const useGame = create<GameState>((set, get) => ({
   reload: async () => {
     const id = get().campaignId
     if (!id) return
+    const my = epoch
     const [campaigns, members, characters, scenes, tokens, chat] = await Promise.all([
       backend.select('campaigns', id),
       backend.select('members', id),
@@ -152,6 +159,7 @@ export const useGame = create<GameState>((set, get) => ({
       backend.select('tokens', id),
       backend.select('chat', id),
     ])
+    if (my !== epoch || get().campaignId !== id) return
     if (!campaigns[0]) throw new Error('Campanha não encontrada ou sem acesso.')
     set({
       campaign: campaigns[0],

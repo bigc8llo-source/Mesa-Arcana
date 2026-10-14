@@ -186,7 +186,7 @@ function CreateCampaign({ open, onClose }: { open: boolean; onClose: () => void 
   const user = useGame((s) => s.user)!
   const nav = useNavigate()
   const [name, setName] = useState('A Cripta do Rei Goblin')
-  const [system, setSystem] = useState('dnd5e')
+  const [system, setSystem] = useState('tormenta20')
   const [sample, setSample] = useState(true)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)

@@ -6,7 +6,7 @@ import { systemOf, SYSTEMS } from '../systems'
 import { generateSpriteSheet, makeTokenCanvas, RECIPE_PRESETS, spriteConfigFor, type SpriteRecipe } from '../engine/sprites'
 import { uploadCanvas } from '../lib/images'
 import { buildSampleMap, buildTheaterBackground } from '../engine/sampleMap'
-import { MONSTERS } from '../systems/monsters'
+import { MONSTERS, monsterSheet } from '../systems/monsters'
 import { snapToGrid } from '../engine/geometry'
 
 const g = () => useGame.getState()
@@ -299,12 +299,14 @@ export async function seedSampleCampaign(onProgress?: (msg: string) => void) {
 
   onProgress?.('Criando heróis…')
   const dnd = s.campaign?.system_id === 'dnd5e'
+  const t20 = s.campaign?.system_id === 'tormenta20'
   const heroes: { name: string; preset: string; color: string; sheet: Record<string, unknown> }[] = [
     { name: 'Brunhilda', preset: 'guerreiro', color: '#e11d48', sheet: dnd ? { race: 'Anã', class: 'Guerreira', abilities: { for: 16, des: 12, con: 15, int: 8, sab: 12, car: 10 }, saves: ['for', 'con'], skills: { atletismo: 1, intimidacao: 1 }, hp: 13, hp_max: 13, ac: 18, attacks: [{ id: uid(), name: 'Espada longa', bonus: 5, damage: '1d8+3', type: 'cortante' }], darkvision: 12 } : {} },
     { name: 'Eldrin', preset: 'mago', color: '#2563eb', sheet: dnd ? { race: 'Elfo', class: 'Mago', abilities: { for: 8, des: 14, con: 12, int: 16, sab: 12, car: 10 }, saves: ['int', 'sab'], skills: { arcanismo: 1, historia: 1 }, hp: 7, hp_max: 7, ac: 12, spell_ability: 'int', attacks: [{ id: uid(), name: 'Bordão', bonus: 1, damage: '1d6-1', type: 'concussão' }], spells: [{ id: uid(), name: 'Raio de Fogo', level: 0, notation: '1d20+5', description: 'Dano 1d10 de fogo, 36 m.' }, { id: uid(), name: 'Mísseis Mágicos', level: 1, notation: '3d4+3', description: 'Três dardos que acertam automaticamente.' }], darkvision: 12 } : {} },
     { name: 'Sombra', preset: 'ladino', color: '#16a34a', sheet: dnd ? { race: 'Halfling', class: 'Ladina', abilities: { for: 8, des: 16, con: 12, int: 12, sab: 10, car: 14 }, saves: ['des', 'int'], skills: { furtividade: 2, prestidigitacao: 1, enganacao: 1, percepcao: 1 }, hp: 9, hp_max: 9, ac: 14, attacks: [{ id: uid(), name: 'Adaga', bonus: 5, damage: '1d4+3', type: 'perfurante' }, { id: uid(), name: 'Ataque Furtivo', bonus: 5, damage: '1d6', type: 'extra' }] } : {} },
     { name: 'Irmã Lúcia', preset: 'clerigo', color: '#d97706', sheet: dnd ? { race: 'Humana', class: 'Clériga', abilities: { for: 12, des: 10, con: 14, int: 10, sab: 16, car: 12 }, saves: ['sab', 'car'], skills: { religiao: 1, medicina: 1 }, hp: 10, hp_max: 10, ac: 16, spell_ability: 'sab', attacks: [{ id: uid(), name: 'Maça', bonus: 3, damage: '1d6+1', type: 'concussão' }], spells: [{ id: uid(), name: 'Curar Ferimentos', level: 1, notation: '1d8+3', description: 'Toque: recupera PV.' }, { id: uid(), name: 'Chama Sagrada', level: 0, notation: '1d8', description: 'Salv. DES CD 13.' }] } : {} },
   ]
+  if (t20) heroes.forEach((h, i) => (h.sheet = T20_HEROES[i]))
   for (let i = 0; i < heroes.length; i++) {
     const h = heroes[i]
     const c = await createCharacter({ name: h.name, kind: 'pc', recipe: RECIPE_PRESETS[h.preset].recipe, color: h.color, ownerId: null, sheet: h.sheet })
@@ -323,7 +325,7 @@ export async function seedSampleCampaign(onProgress?: (msg: string) => void) {
         recipe: RECIPE_PRESETS[entry.sprite].recipe,
         color: '#7f1d1d',
         ownerId: null,
-        sheet: dnd ? { ...entry.sheet, cr: entry.cr, size: entry.size } : { hp: entry.sheet.hp, hp_max: entry.sheet.hp_max, defense: entry.sheet.ac, size: entry.size },
+        sheet: monsterSheet(s.campaign?.system_id ?? 'generico', entry),
         hidden: true,
       })
       made.set(m.kind, c)
@@ -334,3 +336,11 @@ export async function seedSampleCampaign(onProgress?: (msg: string) => void) {
 }
 
 export { MONSTERS }
+
+const t20atk = (name: string, skill: 'luta' | 'pontaria', damage: string, crit: string) => ({ id: uid(), name, skill, damage, crit, extra: 0 })
+const T20_HEROES: Record<string, unknown>[] = [
+  { race: 'Anão', class: 'Guerreiro', origin: 'Soldado', deity: 'Khalmyr', attrs: { for: 16, des: 12, con: 16, int: 10, sab: 12, car: 8 }, trained: ['luta', 'fortitude', 'atletismo', 'intimidacao', 'guerra'], pv: 23, pv_max: 23, pm: 3, pm_max: 3, defense_armor: 7, armor_penalty: 2, attacks: [t20atk('Machado de batalha', 'luta', '1d8+3', '20/x3')], darkvision: 12 },
+  { race: 'Elfo', class: 'Arcanista', origin: 'Acólito', deity: 'Wynna', attrs: { for: 8, des: 14, con: 12, int: 17, sab: 12, car: 10 }, trained: ['misticismo', 'vontade', 'conhecimento', 'percepcao'], pv: 9, pv_max: 9, pm: 6, pm_max: 6, attacks: [t20atk('Bordão', 'luta', '1d6-1', '20/x2')], powers: [{ id: uid(), name: 'Seta Infalível de Talude', cost: 1, notation: '2d4+2', description: 'Magia arcana de dano.' }, { id: uid(), name: 'Explosão de Chamas', cost: 1, notation: '2d6', description: 'Cone de fogo (Reflexos reduz).' }], darkvision: 12 },
+  { race: 'Hynne', class: 'Ladino', origin: 'Batedor', deity: 'Hyninn', attrs: { for: 8, des: 17, con: 12, int: 12, sab: 10, car: 14 }, trained: ['ladinagem', 'furtividade', 'reflexos', 'enganacao', 'percepcao', 'acrobacia', 'iniciativa'], pv: 13, pv_max: 13, pm: 4, pm_max: 4, defense_armor: 2, attacks: [t20atk('Adaga', 'luta', '1d4+3', '19/x2'), t20atk('Funda', 'pontaria', '1d4', '20/x2')], powers: [{ id: uid(), name: 'Ataque Furtivo', cost: 0, notation: '1d6', description: 'Dano extra contra alvo desprevenido.' }] },
+  { race: 'Humano', class: 'Clérigo', origin: 'Acólito', deity: 'Lena', attrs: { for: 12, des: 10, con: 14, int: 10, sab: 17, car: 12 }, trained: ['religiao', 'vontade', 'cura', 'diplomacia', 'intuicao'], pv: 18, pv_max: 18, pm: 5, pm_max: 5, defense_armor: 6, armor_penalty: 2, attacks: [t20atk('Maça', 'luta', '1d8+1', '20/x2')], powers: [{ id: uid(), name: 'Curar Ferimentos', cost: 1, notation: '2d8+2', description: 'Recupera PV pelo toque.' }] },
+]

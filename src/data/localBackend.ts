@@ -182,6 +182,19 @@ export class LocalBackend implements Backend {
     this.localHandlers.get(change.row.campaign_id)?.forEach((h) => h.onChange(change))
   }
 
+  async endTurn(sceneId: string) {
+    const scene = load('scenes')[sceneId]
+    if (!scene?.combat.active || !scene.combat.combatants.length) return
+    const n = scene.combat.combatants.length
+    let turn = scene.combat.turn + 1
+    let round = scene.combat.round
+    if (turn >= n) {
+      turn = 0
+      round++
+    }
+    await this.upsert('scenes', { ...scene, combat: { ...scene.combat, turn, round } })
+  }
+
   async uploadAsset(_campaignId: string, _kind: string, file: Blob) {
     const key = uid()
     await idbPut(key, file)
