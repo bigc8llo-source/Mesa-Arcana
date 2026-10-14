@@ -123,12 +123,23 @@ export class SupabaseBackend implements Backend {
     return (data ?? []).map((r) => fromRow(table, r as DbRow))
   }
 
+  /**
+   * Atualiza se existir, senão insere. (O upsert do PostgREST exigiria política de INSERT
+   * até para atualizar, o que quebraria as regras de RLS de campanhas, membros e tokens.)
+   */
   async upsert<T extends TableName>(table: T, row: Collections[T]) {
     const spec = TABLES[table]
-    const { error } = await this.client
-      .from(spec.name)
-      .upsert(toRow(table, row), table === 'members' ? { onConflict: 'campaign_id,user_id' } : undefined)
+    const dbRow = toRow(table, row)
+    let q = this.client.from(spec.name).update(dbRow)
+    if (table === 'members') {
+      const m = row as Collections['members']
+      q = q.eq('campaign_id', m.campaign_id).eq('user_id', m.user_id)
+    } else q = q.eq('id', row.id)
+    const { data, error } = await q.select(table === 'members' ? 'user_id' : 'id')
     if (error) throw error
+    if (data && data.length > 0) return
+    const ins = await this.client.from(spec.name).insert(dbRow)
+    if (ins.error) throw ins.error
   }
 
   async remove<T extends TableName>(table: T, row: Collections[T]) {
@@ -163,10 +174,20 @@ export class SupabaseBackend implements Backend {
     let everSubscribed = false
     let closed = false
 
-    const onDb = (msg: { payload: { table: string; op: 'upsert' | 'delete'; row: DbRow; hide?: boolean } }) => {
+    const onDb = (msg: { payload: { table: string; op: 'upsert' | 'delete' | 'refresh'; row: DbRow; hide?: boolean } }) => {
       const { table, op, row, hide } = msg.payload
       const t = BY_DB_NAME[table]
       if (!t) return
+      // linha grande demais para o Broadcast: o banco só avisa e o cliente busca
+      if (op === 'refresh') {
+        void this.client
+          .from(table)
+          .select('*')
+          .eq('id', row.id as string)
+          .maybeSingle()
+          .then(({ data }) => data && h.onChange({ table: t, op: 'upsert', row: fromRow(t, data as DbRow) } as Change))
+        return
+      }
       // "hide" = item ficou oculto; quem ainda pode vê-lo (mestre/dono) ignora a remoção.
       if (hide && (isGm || row.owner_id === userId)) return
       h.onChange({ table: t, op, row: fromRow(t, row) } as Change)

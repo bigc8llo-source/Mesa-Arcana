@@ -16,8 +16,12 @@ export function TokenMenu() {
   const [amount, setAmount] = useState(5)
 
   useEffect(() => {
-    const open = (e: Event) => setState((e as CustomEvent).detail)
-    const close = () => setState(null)
+    let openedAt = 0
+    const open = (e: Event) => {
+      openedAt = performance.now()
+      setState((e as CustomEvent).detail)
+    }
+    const close = () => performance.now() - openedAt > 50 && setState(null)
     window.addEventListener('token-menu', open)
     window.addEventListener('pointerdown', close)
     window.addEventListener('keydown', close)

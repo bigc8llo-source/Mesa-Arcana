@@ -143,6 +143,15 @@ function TokenView({ token, scene }: { token: Token; scene: Scene }) {
   useEffect(() => () => void displayPos.delete(token.id), [token.id])
 
   const onDown = (e: ThreeEvent<PointerEvent>) => {
+    if (e.button === 2) {
+      // botão direito no token abre o menu (e não move a câmera)
+      e.stopPropagation()
+      interaction.consumed = true
+      const s = useGame.getState()
+      if (!s.selected.includes(token.id)) s.set({ selected: [token.id] })
+      window.dispatchEvent(new CustomEvent('token-menu', { detail: { id: token.id, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY } }))
+      return
+    }
     if (e.button !== 0) return
     const s = useGame.getState()
     if (s.tool !== 'select' || e.nativeEvent.altKey) return
@@ -198,11 +207,6 @@ function TokenView({ token, scene }: { token: Token; scene: Scene }) {
       onDoubleClick={(e) => {
         e.stopPropagation()
         if (token.character_id) useGame.getState().set({ openSheetId: token.character_id })
-      }}
-      onContextMenu={(e) => {
-        e.stopPropagation()
-        e.nativeEvent.preventDefault()
-        window.dispatchEvent(new CustomEvent('token-menu', { detail: { id: token.id, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY } }))
       }}
     >
       {/* base / anel */}

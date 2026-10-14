@@ -31,7 +31,7 @@ function AnimPreview({ sprite }: { sprite: SpriteConfig }) {
       </div>
       <div className="flex flex-wrap justify-center gap-1">
         {ANIMS.filter((a) => sprite.animations[a]).map((a) => (
-          <button key={a} onClick={() => setAnim(a)} className={cn('rounded px-1.5 py-0.5 text-[11px]', anim === a ? 'bg-arcane-600 text-white' : 'bg-ink-700 text-parch-200')}>
+          <button type="button" key={a} onClick={() => setAnim(a)} className={cn('rounded px-1.5 py-0.5 text-[11px]', anim === a ? 'bg-arcane-600 text-white' : 'bg-ink-700 text-parch-200')}>
             {ANIM_LABELS[a]}
           </button>
         ))}
@@ -77,7 +77,7 @@ export function SpriteEditor({ value, onChange }: { value: SpriteChoice; onChang
             ['portrait', 'Enviar retrato'],
           ] as const
         ).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} className={cn('flex-1 rounded-md px-2 py-1.5 text-xs font-semibold', tab === id ? 'bg-ink-600 text-gold-400' : 'text-parch-300')}>
+          <button type="button" key={id} onClick={() => setTab(id)} className={cn('flex-1 rounded-md px-2 py-1.5 text-xs font-semibold', tab === id ? 'bg-ink-600 text-gold-400' : 'text-parch-300')}>
             {label}
           </button>
         ))}
@@ -89,7 +89,7 @@ export function SpriteEditor({ value, onChange }: { value: SpriteChoice; onChang
           <div className="space-y-3">
             <div className="flex flex-wrap gap-1">
               {Object.entries(RECIPE_PRESETS).map(([k, p]) => (
-                <button key={k} onClick={() => onChange({ mode: 'recipe', recipe: p.recipe })} className="rounded-md bg-ink-700 px-2 py-1 text-xs hover:bg-ink-600">
+                <button type="button" key={k} onClick={() => onChange({ mode: 'recipe', recipe: p.recipe })} className="rounded-md bg-ink-700 px-2 py-1 text-xs hover:bg-ink-600">
                   {p.label}
                 </button>
               ))}
@@ -155,6 +155,7 @@ export function SpriteEditor({ value, onChange }: { value: SpriteChoice; onChang
             (lembre de creditar os artistas — licença CC-BY-SA/GPL).
           </p>
           <Button
+            type="button"
             onClick={async () => {
               const f = await pickFile('image/png,image/webp,image/gif')
               if (f) onChange({ mode: 'upload', file: f, config: uploadConfig() })
@@ -239,6 +240,7 @@ export function SpriteEditor({ value, onChange }: { value: SpriteChoice; onChang
         <div className="space-y-3">
           <p className="text-xs text-parch-300">Uma imagem comum (ilustração, foto, arte). Vira retrato da ficha e token redondo no mapa.</p>
           <Button
+            type="button"
             onClick={async () => {
               const f = await pickFile('image/*')
               if (f) onChange({ mode: 'portrait', file: f })

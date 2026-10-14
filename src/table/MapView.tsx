@@ -253,9 +253,10 @@ function ToolOverlay({ scene }: { scene: Scene }) {
 
 // ------------------------------------------------------------ interação
 
-function circlePoly(c: Pt, r: number, n = 16): number[] {
+/** Círculo como polígono com coordenadas inteiras (mantém a cena pequena para o Realtime). */
+function circlePoly(c: Pt, r: number, n = 12): number[] {
   const out: number[] = []
-  for (let i = 0; i < n; i++) out.push(c.x + Math.cos((i / n) * Math.PI * 2) * r, c.y + Math.sin((i / n) * Math.PI * 2) * r)
+  for (let i = 0; i < n; i++) out.push(Math.round(c.x + Math.cos((i / n) * Math.PI * 2) * r), Math.round(c.y + Math.sin((i / n) * Math.PI * 2) * r))
   return out
 }
 
@@ -443,7 +444,7 @@ function useTableInput(scene: Scene, wrap: React.RefObject<HTMLDivElement | null
       if (d.fogRect) {
         const { a, b } = d.fogRect
         if (Math.abs(a.x - b.x) > 5 && Math.abs(a.y - b.y) > 5) {
-          const shape: FogShape = { id: uid(), mode: o.fogMode, points: [a.x, a.y, b.x, a.y, b.x, b.y, a.x, b.y] }
+          const shape: FogShape = { id: uid(), mode: o.fogMode, points: [a.x, a.y, b.x, a.y, b.x, b.y, a.x, b.y].map(Math.round) }
           void s.patch('scenes', scene.id, { fog: [...scene.fog, shape] })
         }
         d.set({ fogRect: null })
@@ -460,7 +461,7 @@ function useTableInput(scene: Scene, wrap: React.RefObject<HTMLDivElement | null
       const d = useDraft.getState()
       const s = useGame.getState()
       if (d.chain && s.tool === 'fog' && d.chain.pts.length >= 3) {
-        const shape: FogShape = { id: uid(), mode: useToolOptions.getState().fogMode, points: d.chain.pts.flatMap((p) => [p.x, p.y]) }
+        const shape: FogShape = { id: uid(), mode: useToolOptions.getState().fogMode, points: d.chain.pts.flatMap((p) => [Math.round(p.x), Math.round(p.y)]) }
         void s.patch('scenes', scene.id, { fog: [...scene.fog, shape] })
       }
       d.set({ chain: null })

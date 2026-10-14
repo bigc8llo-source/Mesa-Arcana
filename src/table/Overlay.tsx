@@ -84,6 +84,9 @@ export function TokenOverlay({ scene, getCamera }: { scene: Scene; getCamera: ()
   return (
     <div ref={root} className="pointer-events-none absolute inset-0 overflow-hidden" data-testid="token-overlay">
       {tokens.map(label)}
+      {tokens.map((t) => (
+        <div key={`a${t.id}`} data-token={t.id} data-off={0} data-anchor={t.name} className="absolute left-0 top-0 size-0" style={{ visibility: 'hidden' }} />
+      ))}
       {floats.map((f) => (
         <div key={f.id} data-token={f.tokenId} data-off={-cell * 0.6} className="absolute left-0 top-0" style={{ visibility: 'hidden' }}>
           <span className="animate-float-up absolute left-0 text-2xl font-extrabold drop-shadow-[0_2px_2px_rgba(0,0,0,0.9)]" style={{ color: f.color }}>

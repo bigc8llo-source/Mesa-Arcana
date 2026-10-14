@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-e2e
+          path: test-results/
+          retention-days: 7
+
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: supabase/postgres:17.11.0.004
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: ./scripts/test-db.sh | tee out.txt && ! grep -q FALHOU out.txt

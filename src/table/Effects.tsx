@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import type { Scene, Weather } from '../types'
 import { onLive, useGame } from '../store/game'
 import { conePoints, type AoeShape } from '../engine/geometry'
+import { camState } from './camera'
 
 // ============================================================ Partículas genéricas
 
@@ -72,7 +73,11 @@ function Burst({ x, y, opts, onDone }: { x: number; y: number; opts: BurstOpts; 
     }
     p.needsUpdate = true
     const m = ref.current?.material as THREE.PointsMaterial | undefined
-    if (m) m.opacity = Math.max(0, 1 - t.current / opts.life)
+    if (m) {
+      m.opacity = Math.max(0, 1 - t.current / opts.life)
+      // tamanho em pixels acompanha o zoom da câmera ortográfica
+      m.size = opts.size * Math.max(0.8, Math.min(4, camState.zoom * 2.2))
+    }
     if (t.current > opts.life) onDone()
   })
   return (

@@ -73,6 +73,16 @@ select pg_temp.check(pg_temp.fails($q$update public.characters set owner_id = '0
 insert into public.chat_messages (id, campaign_id, author_id, visibility, whisper_to, data) values
   ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', auth.uid(), 'whisper', array['00000000-0000-0000-0000-00000000000a'::uuid], '{"content":"psiu"}');
 
+-- jogador não altera a campanha; o mestre altera
+update public.campaigns set name = 'hack';
+reset role;
+select pg_temp.check((select name from public.campaigns) = 'Teste', 'jogador não altera a campanha');
+select pg_temp.login('00000000-0000-0000-0000-00000000000a');
+update public.campaigns set active_scene_id = '22222222-2222-2222-2222-222222222222';
+reset role;
+select pg_temp.check((select active_scene_id from public.campaigns) = '22222222-2222-2222-2222-222222222222', 'mestre troca a cena ativa');
+select pg_temp.login('00000000-0000-0000-0000-00000000000b');
+
 -- realtime: jogador pode o tópico geral e o próprio, não o do mestre
 select pg_temp.check(public.can_access_topic('campaign:11111111-1111-1111-1111-111111111111'), 'jogador acessa tópico da mesa');
 select pg_temp.check(not public.can_access_topic('campaign:11111111-1111-1111-1111-111111111111:gm'), 'jogador não acessa tópico do mestre');
@@ -98,5 +108,9 @@ select pg_temp.login('00000000-0000-0000-0000-00000000000a');
 update public.tokens set hidden = true where id = '33333333-3333-3333-3333-333333333331';
 reset role;
 select pg_temp.check(exists (select 1 from realtime.sent where topic = 'campaign:11111111-1111-1111-1111-111111111111' and payload->>'hide' = 'true' and payload->'row'->>'id' = '33333333-3333-3333-3333-333333333331'), 'ocultar envia remoção aos jogadores');
+
+-- cena enorme vira aviso "refresh" em vez de estourar o limite do Broadcast
+update public.scenes set data = jsonb_build_object('fog', (select jsonb_agg(g) from generate_series(1, 40000) g)) where id = '22222222-2222-2222-2222-222222222222';
+select pg_temp.check((select payload->>'op' from realtime.sent where payload->'row'->>'id' = '22222222-2222-2222-2222-222222222222' order by ctid desc limit 1) = 'refresh', 'linha grande vira aviso refresh');
 
 rollback;

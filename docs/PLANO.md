@@ -4,8 +4,9 @@ Um webapp de mesa virtual (VTT) para jogar RPG com amigos: fichas com sprites an
 mapas com grid, névoa de guerra, iluminação dinâmica, dados 3D com física, efeitos de magia,
 cenários em "modo teatro", som ambiente e tudo sincronizado em tempo real via Supabase.
 
-> Status: **planejamento**. Nenhum código foi escrito ainda. Este documento é a fonte de
-> verdade das decisões; atualize-o quando uma decisão mudar.
+> Status: **fases 0 a 7 implementadas**; da fase 8, há visual responsivo e atalhos, mas não PWA nem
+> desfazer (veja "Status da implementação" no fim). Este documento é a fonte de verdade das
+> decisões; atualize-o quando uma decisão mudar.
 
 ---
 
@@ -411,6 +412,35 @@ os casos), editor de mapas próprio, marketplace/módulos de terceiros, "modo ju
 6. **Plano Supabase**: Free ou Pro na outra conta?
 
 ---
+
+## Status da implementação
+
+| Fase | Status | Observações |
+|---|---|---|
+| 0. Fundação | ✅ | Vite + React 19 + TS + Tailwind v4, CI no GitHub Actions |
+| 1. Contas e campanhas | ✅ | Link mágico, Discord, convidado (anônimo); convites por código/link; presença |
+| 2. Fichas + sprites | ✅ | D&D 5e (SRD 5.2) e Genérico; gerador de pixel art; folhas LPC/personalizadas; retrato; cartão 3D |
+| 3. Mesa base | ✅ | Grid quadrado/hex, tokens, arrastar a 10 Hz com interpolação, ping, régua, menu do token |
+| 4. Dados 3D + chat | ✅ | Física Rapier simulada antes de mostrar; resultado por semente; sussurros e rolagens secretas |
+| 5. Combate | ✅ | Iniciativa automática, turnos, dano/cura, condições, áreas de efeito, bestiário |
+| 6. Névoa e luz | ✅ | Névoa manual (retângulo/pincel/polígono), paredes/portas/janelas, luzes, visão no escuro, explorado, `.dd2vtt` |
+| 7. Efeitos e cenários | ✅ | Modo teatro, 2.5D, clima, 10 efeitos de magia, números flutuantes, trilha por cena |
+| 8. Polimento | 🟡 parcial | Responsivo, atalhos, ajuda, efeitos reduzidos. Pendentes: PWA, desfazer/refazer, tour guiado |
+
+**Diferenças em relação ao plano (decididas durante a implementação):**
+
+- **Modelo de dados**: cada tabela tem colunas-chave (usadas por RLS e filtros) e um `data jsonb` com o resto.
+  Paredes, luzes, névoa, clima, áudio e combate ficam dentro de `scenes.data` (menos tabelas e menos joins).
+- **Storage**: bucket `assets` **público para leitura**, com caminhos impossíveis de adivinhar
+  (`campanha/tipo/uuid.ext`). Só membros enviam e só o mestre apaga. URLs assinadas complicariam o carregamento
+  de texturas e o cache; fica como melhoria futura se for preciso esconder arquivos.
+- **Bibliotecas**: os efeitos usam partículas próprias em vez de `three.quarks`, o áudio usa `HTMLAudioElement`
+  em vez de Howler e o estado do servidor fica no Zustand em vez de TanStack Query. São menos
+  dependências para o mesmo resultado.
+- **Rótulos dos tokens**: ficam numa camada DOM projetada a cada quadro, em vez de `<Html>` do drei
+  (que gerava erros ao desmontar no React 19).
+- **Modo demonstração**: um backend local (localStorage + IndexedDB + BroadcastChannel) com a mesma interface
+  do Supabase permite testar sem servidor e roda os testes E2E.
 
 ## Fontes consultadas
 

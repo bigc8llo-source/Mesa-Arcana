@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Scene, Token } from '../types'
 import { useGame, useIsGm } from '../store/game'
-import { sightBlockers, visibilityPolygon, type Pt, type Seg } from '../engine/geometry'
+import { crossesWall, sightBlockers, visibilityPolygon, type Pt, type Seg } from '../engine/geometry'
 import { canControl } from '../game/actions'
 import { displayPos, useVision } from './vision'
 
@@ -214,7 +214,9 @@ function visionSources(scene: Scene, tokens: Token[], gm: boolean): { sources: S
   return {
     mine,
     sources: mine.map((t) => {
-      const p = displayPos.get(t.id) ?? { x: t.x, y: t.y }
+      // durante um arrasto a visão acompanha o token, mas nunca "espia" através de paredes
+      let p = displayPos.get(t.id) ?? { x: t.x, y: t.y }
+      if (crossesWall({ x: t.x, y: t.y }, p, scene.walls)) p = { x: t.x, y: t.y }
       return { x: p.x, y: p.y, range: t.vision >= 999 ? Infinity : t.vision * cell, dark: t.darkvision * cell }
     }),
   }

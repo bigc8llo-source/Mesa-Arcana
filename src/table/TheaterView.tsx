@@ -45,7 +45,7 @@ export function TheaterView({ scene }: { scene: Scene }) {
           {narrator.roll ? `${narrator.author_name} rolou ${narrator.roll.total}` : narrator.content}
         </div>
       )}
-      <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-4 px-6 pb-8 sm:gap-10">
+      <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-center gap-3 px-3 pb-6 sm:gap-10 sm:px-6 sm:pb-8">
         {cast.map((c) => {
           const b = bubbles[c.id]
           return (
@@ -63,9 +63,9 @@ export function TheaterView({ scene }: { scene: Scene }) {
                 </div>
               )}
               {c.sprite ? (
-                <SpriteAnimator sprite={c.sprite} scale={Math.min(6, 192 / c.sprite.frameW)} className="drop-shadow-[0_10px_10px_rgba(0,0,0,0.7)]" />
+                <SpriteAnimator sprite={c.sprite} scale={Math.min(6, (innerWidth < 640 ? 72 : 192) / c.sprite.frameW)} className="drop-shadow-[0_10px_10px_rgba(0,0,0,0.7)]" />
               ) : (
-                <Portrait url={c.portrait_url ?? c.token_url} sprite={null} name={c.name} color={c.color} size={150} className="rounded-2xl shadow-2xl" />
+                <Portrait url={c.portrait_url ?? c.token_url} sprite={null} name={c.name} color={c.color} size={innerWidth < 640 ? 64 : 150} className="rounded-2xl shadow-2xl" />
               )}
               <span className={cn('mt-1 rounded-full px-3 py-0.5 text-sm font-semibold text-white')} style={{ background: `${c.color}cc` }}>
                 {c.name}

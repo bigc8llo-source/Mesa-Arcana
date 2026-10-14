@@ -219,6 +219,11 @@ begin
   cid := case when tbl = 'campaigns' then (r ->> 'id')::uuid else (r ->> 'campaign_id')::uuid end;
   base := 'campaign:' || cid::text;
   payload := jsonb_build_object('table', tbl, 'op', op, 'row', r);
+  -- Broadcast aceita até 256 KB no plano grátis: linhas grandes viram um aviso para o cliente buscar
+  if op = 'upsert' and octet_length(payload::text) > 200000 then
+    payload := jsonb_build_object('table', tbl, 'op', 'refresh',
+      'row', jsonb_build_object('id', r -> 'id', 'campaign_id', r -> 'campaign_id', 'owner_id', r -> 'owner_id'));
+  end if;
 
   if tbl in ('tokens', 'characters') and coalesce((r ->> 'hidden')::boolean, false) then
     perform realtime.send(payload, 'db', base || ':gm', true);

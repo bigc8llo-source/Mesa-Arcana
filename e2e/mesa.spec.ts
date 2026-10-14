@@ -51,11 +51,10 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await pl.getByTestId('chat-input').fill('1d20+5')
   await pl.getByTestId('chat-input').press('Enter')
   await expect(pl.getByTestId('dice-overlay')).toBeVisible()
-  await pl.waitForTimeout(1200)
+  await expect(pl.getByTestId('roll-badge')).toBeVisible({ timeout: 15_000 })
   await pl.screenshot({ path: 'test-results/04-dados-3d.png' })
   await gm.getByRole('tab', { name: 'Chat' }).click()
   await expect(gm.getByTestId('chat-log').getByText('1d20+5').first()).toBeVisible()
-  await expect(pl.getByTestId('roll-badge')).toBeVisible({ timeout: 15_000 })
 
   // ficha com sprite
   await pl.getByRole('tab', { name: 'Fichas' }).click()
