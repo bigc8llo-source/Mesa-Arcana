@@ -130,4 +130,13 @@ select public.end_turn('22222222-2222-2222-2222-222222222222');
 reset role;
 select pg_temp.check((select (data->'combat'->>'round')::int from public.scenes where id = '22222222-2222-2222-2222-222222222222') = 2, 'mestre passa turno e começa nova rodada');
 
+-- limite de jogadores
+reset role;
+update public.campaigns set data = data || '{"max_players": 1}';
+select pg_temp.login('00000000-0000-0000-0000-00000000000c');
+select pg_temp.check(pg_temp.fails($q$select public.join_campaign('ABC123', 'Terceiro')$q$), 'campanha cheia recusa novo jogador');
+select pg_temp.login('00000000-0000-0000-0000-00000000000b');
+select pg_temp.check(public.join_campaign('ABC123', 'Jogador') = '11111111-1111-1111-1111-111111111111', 'quem já está entra de novo mesmo cheia');
+reset role;
+
 rollback;

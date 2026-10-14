@@ -14,7 +14,22 @@ export interface Campaign {
   active_scene_id: string | null
   /** Sessão de jogo: o mestre prepara tudo e depois "abre a mesa". */
   session?: { live: boolean; number: number; started_at?: string }
+  /** Vagas de jogadores (sem contar o mestre). */
+  max_players?: number
+  /** Roteiro da campanha montado pelo mestre. */
+  chapters?: Chapter[]
   updated_at?: string
+}
+
+export interface Chapter {
+  id: string
+  title: string
+  summary: string
+  /** só o mestre vê */
+  gm_notes: string
+  scene_ids: string[]
+  npc_ids: string[]
+  status: 'planejado' | 'em andamento' | 'concluído'
 }
 
 export interface Member {

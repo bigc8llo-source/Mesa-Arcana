@@ -140,6 +140,8 @@ export class LocalBackend implements Backend {
     const c = Object.values(load('campaigns')).find((x) => x.invite_code === code.trim().toUpperCase())
     if (!c) throw new Error('Código de convite não encontrado (no modo demonstração ele precisa ter sido criado neste navegador).')
     const existing = load('members')[`${c.id}:${me.id}`]
+    const players = Object.values(load('members')).filter((m) => m.campaign_id === c.id && m.role === 'player').length
+    if (!existing && c.max_players && players >= c.max_players) throw new Error('Esta campanha já está com todas as vagas preenchidas.')
     if (!existing) {
       const colors = ['#e11d48', '#2563eb', '#16a34a', '#d97706', '#0891b2', '#db2777', '#65a30d']
       const count = Object.values(load('members')).filter((m) => m.campaign_id === c.id).length

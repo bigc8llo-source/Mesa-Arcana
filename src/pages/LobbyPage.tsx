@@ -12,6 +12,7 @@ import { SYSTEMS, systemOf } from '../systems'
 import { backend } from '../data'
 import { inviteCode } from '../lib/id'
 import { systemMessage } from '../game/actions'
+import { CampaignPlanner, ChapterList } from './CampaignPlanner'
 
 function Card({ title, icon, children, action }: { title: string; icon: ReactNode; children: ReactNode; action?: ReactNode }) {
   return (
@@ -134,6 +135,11 @@ function PlayersCard() {
             </div>
           )
         })}
+        {Array.from({ length: Math.max(0, (useGame.getState().campaign?.max_players ?? 0) - members.filter((m) => m.role === 'player').length) }).map((_, i) => (
+          <div key={`vaga${i}`} className="flex items-center gap-3 rounded-xl border border-dashed border-ink-600 p-2 text-sm text-ink-500">
+            <span className="grid size-9 place-items-center rounded-full border border-dashed border-ink-500">?</span> Vaga livre
+          </div>
+        ))}
         {members.length <= 1 && <p className="text-sm text-parch-300">Ninguém entrou ainda. Envie o convite ao lado!</p>}
       </div>
     </Card>
@@ -341,7 +347,24 @@ export default function LobbyPage() {
           </p>
         )}
         <div className="grid gap-5 lg:grid-cols-2">
-          <div className="space-y-5">{me?.role === 'gm' ? <GmPrep onOpenTable={openTable} /> : <PlayerArea onOpenTable={openTable} />}</div>
+          <div className="space-y-5">
+            {me?.role === 'gm' ? (
+              <>
+                <GmPrep onOpenTable={openTable} />
+                <CampaignPlanner
+                  onOpenScene={(sceneId) => {
+                    useGame.getState().set({ viewSceneId: sceneId })
+                    nav(`/c/${id}/mesa?cena=${sceneId}`)
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <PlayerArea onOpenTable={openTable} />
+                <ChapterList />
+              </>
+            )}
+          </div>
           <div className="space-y-5">
             <InviteCard />
             <PlayersCard />

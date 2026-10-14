@@ -110,7 +110,7 @@ export class SupabaseBackend implements Backend {
 
   async joinCampaign(code: string, displayName: string) {
     const { data, error } = await this.client.rpc('join_campaign', { p_code: code.trim().toUpperCase(), p_display_name: displayName })
-    if (error) throw new Error(error.message.includes('invalid') ? 'Código de convite inválido' : error.message)
+    if (error) throw new Error(error.message.includes('invalid') ? 'Código de convite inválido' : error.message.includes('full') ? 'Esta campanha já está com todas as vagas preenchidas.' : error.message)
     return data as string
   }
 

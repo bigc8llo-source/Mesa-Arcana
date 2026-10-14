@@ -38,9 +38,9 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await expect(pl.getByTestId('theater-view')).toBeVisible()
 
   // jogadora assume uma heroína
-  await pl.getByRole('tab', { name: 'Fichas' }).click()
-  await pl.getByRole('button', { name: 'Assumir' }).first().click()
-  await expect(pl.getByText('· Ana').first()).toBeVisible()
+  await pl.getByRole('tab', { name: 'Ficha' }).click()
+  await pl.getByTestId('claim-Brunhilda').click()
+  await expect(pl.getByTestId('my-sheet')).toBeVisible()
 
   // mestre leva todos para a masmorra
   await gm.getByRole('tab', { name: 'Cenas' }).click()
@@ -62,8 +62,8 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await expect(gm.getByTestId('chat-log').getByText('1d20+5').first()).toBeVisible()
 
   // ficha com sprite
-  await pl.getByRole('tab', { name: 'Fichas' }).click()
-  await pl.getByTestId('character-row').first().click()
+  await pl.getByRole('tab', { name: 'Ficha' }).click()
+  await pl.getByRole('button', { name: 'Ficha completa' }).click()
   await expect(pl.getByRole('dialog')).toBeVisible()
   await pl.waitForTimeout(800)
   await pl.screenshot({ path: 'test-results/05-ficha.png' })
@@ -74,8 +74,7 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await gm.getByTestId('start-combat').click()
   await expect(gm.getByText('Rodada 1')).toBeVisible()
   await gm.getByTestId('next-turn').click()
-  await pl.getByRole('tab', { name: 'Combate' }).click()
-  await expect(pl.getByText('Rodada 1')).toBeVisible()
+  await expect(pl.getByTestId('turn-bar')).toBeVisible()
   await gm.screenshot({ path: 'test-results/06-combate.png' })
 
   // modo 2.5D

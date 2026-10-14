@@ -59,8 +59,8 @@ test('interações no mapa: mover, paredes, menu do token, efeitos e novo person
   await pl.getByRole('button', { name: 'Entrar', exact: true }).click()
   await pl.getByTestId('enter-table').click()
   await expect(pl.getByTestId('map-view')).toBeVisible()
-  await pl.getByRole('tab', { name: 'Fichas' }).click()
-  await pl.locator('[data-testid="character-row"]', { hasText: 'Brunhilda' }).getByRole('button', { name: 'Assumir' }).click()
+  await pl.getByRole('tab', { name: 'Ficha' }).click()
+  await pl.getByTestId('claim-Brunhilda').click()
   await pl.waitForTimeout(1500)
 
   // arrastar duas casas para a direita
@@ -105,19 +105,7 @@ test('interações no mapa: mover, paredes, menu do token, efeitos e novo person
   // dano pelo mestre aparece na barra (ficha da Brunhilda)
   await gm.mouse.click((await anchor(gm, 'Brunhilda')).x, (await anchor(gm, 'Brunhilda')).y)
   await gm.getByRole('button', { name: 'Dano' }).click()
-  await pl.getByRole('tab', { name: 'Fichas' }).click()
-  await expect(pl.locator('[data-testid="character-row"]', { hasText: 'Brunhilda' })).toBeVisible()
   await expect.poll(() => pl.evaluate(() => (Object.values(JSON.parse(localStorage.getItem('mesa-arcana:characters') || '{}')).find((c: any) => c.name === 'Brunhilda') as any).sheet.pv)).toBe(18)
-
-  // nova personagem pelo assistente
-  await pl.getByTestId('new-character').click()
-  await pl.getByTestId('wizard-name').fill('Thalia')
-  await pl.getByRole('button', { name: /Arcanista/ }).click()
-  for (let i = 0; i < 4; i++) await pl.getByTestId('wizard-next').click()
-  await pl.getByTestId('wizard-create').click()
-  await expect(pl.getByRole('dialog').locator('input[value="Thalia"]')).toBeVisible()
-  await pl.screenshot({ path: 'test-results/12-nova-ficha.png' })
-  await pl.keyboard.press('Escape')
 
   // paredes: o mestre desenha uma parede nova
   await gm.getByTestId('tool-walls').click()

@@ -1,0 +1,55 @@
+import { expect, test } from '@playwright/test'
+
+test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+test('celular: mestre controla a mesa e jogador rola dados pelo botão central', async ({ context }) => {
+  const errors: string[] = []
+  const gm = await context.newPage()
+  gm.on('pageerror', (e) => errors.push(`[gm] ${e.message}`))
+  await gm.goto('/')
+  await gm.getByPlaceholder('Ex.: Ana').fill('Mestre')
+  await gm.getByRole('button', { name: 'Entrar como convidado' }).click()
+  await gm.getByRole('button', { name: 'Nova campanha' }).click()
+  await gm.getByRole('button', { name: 'Criar e abrir a mesa' }).click()
+  await expect.poll(() => gm.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('mesa-arcana:tokens') || '{}')).length), { timeout: 60_000 }).toBe(9)
+  await gm.screenshot({ path: 'test-results/m10-saguao-mestre.png', fullPage: true })
+  const code = (await gm.getByTestId('invite-code').textContent())!.trim()
+  await gm.getByTestId('start-session').click()
+  await expect(gm.getByTestId('theater-view')).toBeVisible()
+
+  // mestre: navegação inferior, cenas e ferramentas recolhidas
+  await gm.getByTestId('nav-scenes').click()
+  await gm.getByRole('button', { name: 'Ativar' }).click()
+  await gm.getByTestId('nav-scenes').click()
+  await expect(gm.getByTestId('map-view')).toBeVisible()
+  await gm.getByTestId('tools-toggle').click()
+  await expect(gm.getByTestId('tool-walls')).toBeVisible()
+  await gm.getByTestId('tool-select').click()
+  await gm.screenshot({ path: 'test-results/m11-mesa-mestre.png' })
+
+  const pl = await context.newPage()
+  pl.on('pageerror', (e) => errors.push(`[jogador] ${e.message}`))
+  await pl.goto(`/convite/${code}`)
+  await pl.getByPlaceholder('Ex.: Ana').fill('Bia')
+  await pl.getByRole('button', { name: 'Entrar como convidado' }).click()
+  await pl.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await pl.getByTestId('enter-table').click()
+  await pl.getByTestId('nav-me').click()
+  await pl.getByTestId('claim-Sombra').click()
+  await expect(pl.getByTestId('my-sheet')).toBeVisible()
+  await pl.screenshot({ path: 'test-results/m12-ficha-jogador.png' })
+  await pl.getByTestId('nav-me').click()
+
+  // dados: botão central, escolhe 1d20 + 2d6 e tira um d6
+  await pl.getByTestId('dice-fab').click()
+  await pl.getByTestId('die-20').click()
+  await pl.getByTestId('die-6').click()
+  await pl.getByTestId('die-6').click()
+  await pl.getByTestId('die-6').click()
+  await pl.getByRole('button', { name: 'Remover d6' }).click()
+  await expect(pl.getByTestId('roll-button')).toContainText('2d6+1d20')
+  await pl.screenshot({ path: 'test-results/m13-dados.png' })
+  await pl.getByTestId('roll-button').click()
+  await expect(pl.getByTestId('roll-badge')).toBeVisible({ timeout: 20_000 })
+  expect(errors).toEqual([])
+})

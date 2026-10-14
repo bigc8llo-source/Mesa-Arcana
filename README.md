@@ -44,7 +44,7 @@ O banco fica num projeto Supabase seu. Nada é criado automaticamente: o schema 
      npx supabase link --project-ref SEU_REF    # o REF aparece na URL do painel
      npx supabase db push
      ```
-   - Ou cole no **SQL Editor**, nesta ordem, o conteúdo de `supabase/migrations/20261014000000_schema.sql` e de `supabase/migrations/20261015000000_turns.sql`, e execute.
+   - Ou cole no **SQL Editor**, nesta ordem, o conteúdo de `supabase/migrations/20261014000000_schema.sql` e de `supabase/migrations/20261015000000_turns.sql` e `supabase/migrations/20261016000000_max_players.sql`, e execute.
 3. **Configure a autenticação** em *Authentication*:
    - em *Sign In / Providers*, ative **Email** (link mágico) e **Anonymous sign-ins** (para o "Entrar como convidado");
    - para entrar com Discord, ative o provedor **Discord**, com o Client ID e o Secret criados no [Discord Developer Portal](https://discord.com/developers/applications);

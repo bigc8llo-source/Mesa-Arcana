@@ -6,7 +6,7 @@ import type { SpriteConfig } from '../types'
  * Linhas: 0 idle, 1 walk, 2 attack, 3 hurt, 4 death, 5 cast.
  */
 export interface SpriteRecipe {
-  body: 'human' | 'dwarf' | 'elf' | 'orc' | 'skeleton' | 'slime' | 'goblin'
+  body: 'human' | 'dwarf' | 'elf' | 'orc' | 'skeleton' | 'slime' | 'goblin' | 'halfling' | 'minotaur' | 'golem' | 'lizard'
   skin: string
   hair: string
   outfit: string
@@ -14,6 +14,11 @@ export interface SpriteRecipe {
   weapon: 'sword' | 'axe' | 'staff' | 'bow' | 'dagger' | 'mace' | 'none'
   hat: 'none' | 'hood' | 'wizard' | 'helmet' | 'crown' | 'horns'
   shield: boolean
+  /** Opcionais (visual mais rico) */
+  cape?: string | null
+  hairStyle?: 'short' | 'long' | 'bald' | 'mohawk' | 'braids'
+  beard?: boolean
+  armor?: 'cloth' | 'leather' | 'plate' | 'robe'
 }
 
 export const DEFAULT_RECIPE: SpriteRecipe = {
@@ -28,18 +33,20 @@ export const DEFAULT_RECIPE: SpriteRecipe = {
 }
 
 export const RECIPE_PRESETS: Record<string, { label: string; recipe: SpriteRecipe }> = {
-  guerreiro: { label: 'Guerreiro', recipe: { ...DEFAULT_RECIPE, outfit: '#64748b', accent: '#dc2626', weapon: 'sword', hat: 'helmet', shield: true } },
-  mago: { label: 'Mago', recipe: { ...DEFAULT_RECIPE, outfit: '#6d28d9', accent: '#fde047', hair: '#e5e7eb', weapon: 'staff', hat: 'wizard' } },
-  ladino: { label: 'Ladino', recipe: { ...DEFAULT_RECIPE, outfit: '#1f2937', accent: '#10b981', hair: '#111827', weapon: 'dagger', hat: 'hood' } },
-  clerigo: { label: 'Clérigo', recipe: { ...DEFAULT_RECIPE, outfit: '#f8fafc', accent: '#eab308', hair: '#a16207', weapon: 'mace', shield: true } },
-  patrulheiro: { label: 'Patrulheiro', recipe: { ...DEFAULT_RECIPE, body: 'elf', skin: '#fde3c4', outfit: '#166534', accent: '#a3e635', hair: '#fef08a', weapon: 'bow', hat: 'hood' } },
-  barbaro: { label: 'Bárbaro', recipe: { ...DEFAULT_RECIPE, body: 'orc', skin: '#65a30d', outfit: '#7c2d12', accent: '#e5e7eb', hair: '#111827', weapon: 'axe', hat: 'horns' } },
-  anao: { label: 'Anão', recipe: { ...DEFAULT_RECIPE, body: 'dwarf', skin: '#e0ac69', hair: '#b45309', outfit: '#78350f', accent: '#fbbf24', weapon: 'axe', hat: 'helmet' } },
-  rei: { label: 'Nobre', recipe: { ...DEFAULT_RECIPE, outfit: '#991b1b', accent: '#fbbf24', hair: '#78350f', weapon: 'none', hat: 'crown' } },
-  goblin: { label: 'Goblin', recipe: { ...DEFAULT_RECIPE, body: 'goblin', skin: '#4d7c0f', outfit: '#57534e', accent: '#a8a29e', hair: '#1c1917', weapon: 'dagger' } },
+  guerreiro: { label: 'Guerreiro', recipe: { ...DEFAULT_RECIPE, body: 'dwarf', skin: '#e0ac69', hair: '#b45309', beard: true, outfit: '#64748b', accent: '#dc2626', weapon: 'axe', hat: 'helmet', shield: true, armor: 'plate', cape: '#991b1b' } },
+  mago: { label: 'Mago', recipe: { ...DEFAULT_RECIPE, body: 'elf', skin: '#fde3c4', hair: '#e5e7eb', hairStyle: 'long', outfit: '#4c1d95', accent: '#fde047', weapon: 'staff', hat: 'wizard', armor: 'robe', cape: '#312e81' } },
+  ladino: { label: 'Ladino', recipe: { ...DEFAULT_RECIPE, body: 'halfling', hair: '#111827', outfit: '#1f2937', accent: '#10b981', weapon: 'dagger', hat: 'hood', armor: 'leather', cape: '#111827' } },
+  clerigo: { label: 'Clérigo', recipe: { ...DEFAULT_RECIPE, outfit: '#f8fafc', accent: '#eab308', hair: '#a16207', hairStyle: 'long', weapon: 'mace', shield: true, armor: 'plate', cape: '#ca8a04' } },
+  patrulheiro: { label: 'Caçador', recipe: { ...DEFAULT_RECIPE, body: 'elf', skin: '#fde3c4', outfit: '#166534', accent: '#a3e635', hair: '#fef08a', weapon: 'bow', hat: 'hood', armor: 'leather', cape: '#14532d' } },
+  barbaro: { label: 'Bárbaro', recipe: { ...DEFAULT_RECIPE, body: 'orc', skin: '#65a30d', outfit: '#7c2d12', accent: '#e5e7eb', hair: '#111827', weapon: 'axe', hat: 'horns', armor: 'leather' } },
+  anao: { label: 'Anão', recipe: { ...DEFAULT_RECIPE, body: 'dwarf', skin: '#e0ac69', hair: '#b45309', beard: true, outfit: '#78350f', accent: '#fbbf24', weapon: 'mace', hat: 'none', armor: 'leather' } },
+  rei: { label: 'Nobre', recipe: { ...DEFAULT_RECIPE, outfit: '#991b1b', accent: '#fbbf24', hair: '#78350f', weapon: 'none', hat: 'crown', armor: 'cloth', cape: '#7f1d1d' } },
+  minotauro: { label: 'Minotauro', recipe: { ...DEFAULT_RECIPE, body: 'minotaur', skin: '#7c4a2a', hair: '#3f2a1a', outfit: '#57534e', accent: '#b91c1c', weapon: 'axe', hat: 'none', armor: 'leather' } },
+  goblin: { label: 'Goblin', recipe: { ...DEFAULT_RECIPE, body: 'goblin', skin: '#4d7c0f', outfit: '#57534e', accent: '#a8a29e', hair: '#1c1917', hairStyle: 'mohawk', weapon: 'dagger', armor: 'leather' } },
   esqueleto: { label: 'Esqueleto', recipe: { ...DEFAULT_RECIPE, body: 'skeleton', skin: '#e7e5e4', outfit: '#44403c', accent: '#78716c', weapon: 'sword', shield: true } },
   slime: { label: 'Gosma', recipe: { ...DEFAULT_RECIPE, body: 'slime', skin: '#22c55e', weapon: 'none' } },
-  orc: { label: 'Orc', recipe: { ...DEFAULT_RECIPE, body: 'orc', skin: '#4d7c0f', outfit: '#292524', accent: '#b91c1c', weapon: 'axe', hat: 'helmet' } },
+  orc: { label: 'Orc', recipe: { ...DEFAULT_RECIPE, body: 'orc', skin: '#4d7c0f', outfit: '#292524', accent: '#b91c1c', weapon: 'axe', hat: 'helmet', armor: 'plate' } },
+  trog: { label: 'Trog', recipe: { ...DEFAULT_RECIPE, body: 'lizard', skin: '#4d7c0f', outfit: '#3f3f46', accent: '#a3e635', weapon: 'mace', armor: 'leather' } },
 }
 
 const F = 32
@@ -98,11 +105,19 @@ function drawFrame(ctx: CanvasRenderingContext2D, ox: number, oy: number, r: Spr
     return
   }
 
-  const short = r.body === 'dwarf' || r.body === 'goblin'
+  const short = r.body === 'dwarf' || r.body === 'goblin' || r.body === 'halfling'
   const top = (short ? 6 : 3) + p.bob
   const skin = r.skin
   const outfit = r.outfit
   const bone = r.body === 'skeleton'
+
+  // capa (atrás do corpo)
+  if (r.cape) {
+    const capeTop = (short ? 6 : 3) + p.bob + 11
+    px(9, capeTop, 14, 16 - (short ? 3 : 0), shade(r.cape, -30))
+    px(10, capeTop, 12, 15 - (short ? 3 : 0), r.cape)
+    px(10, capeTop + 13 - (short ? 3 : 0), 12, 1, shade(r.cape, -45))
+  }
 
   // pernas
   const legL = p.leg > 0 ? -1 : 0
@@ -117,6 +132,24 @@ function drawFrame(ctx: CanvasRenderingContext2D, ox: number, oy: number, r: Spr
   const bx = 16 - bw / 2
   px(bx, top + 12, bw, 10, bone ? shade(outfit, 10) : outfit)
   px(bx, top + 18, bw, 2, r.accent) // cinto
+  px(bx, top + 12, 1, 10, shade(outfit, -25)) // sombra lateral
+  px(bx + bw - 1, top + 12, 1, 10, shade(outfit, -35))
+  if (r.armor === 'plate' && !bone) {
+    px(bx + 1, top + 12, bw - 2, 5, '#cbd5e1')
+    px(bx + 2, top + 13, 2, 3, '#f1f5f9')
+    px(bx - 3, top + 12, 3, 3, '#94a3b8') // ombreiras
+    px(bx + bw, top + 12, 3, 3, '#94a3b8')
+  }
+  if (r.armor === 'leather' && !bone) {
+    px(bx + 1, top + 13, bw - 2, 1, shade(outfit, -40))
+    px(bx + 1, top + 15, bw - 2, 1, shade(outfit, -40))
+    px(16, top + 12, 1, 6, shade(outfit, 30))
+  }
+  if (r.armor === 'robe' && !bone) {
+    px(bx - 1, top + 19, bw + 2, 9 - top + (short ? 6 : 3), outfit) // túnica até os pés
+    px(bx - 1, top + 26 - top + (short ? 6 : 3), bw + 2, 1, r.accent)
+    px(15, top + 12, 2, 16, r.accent)
+  }
   if (bone) {
     px(14, top + 13, 4, 1, skin)
     px(14, top + 15, 4, 1, skin)
@@ -144,17 +177,55 @@ function drawFrame(ctx: CanvasRenderingContext2D, ox: number, oy: number, r: Spr
     px(hx + 2, top + 10, 1, 2, '#fff')
     px(hx + hw - 3, top + 10, 1, 2, '#fff')
   }
-  if (r.body === 'dwarf') px(hx, top + 9, hw, 5, r.hair) // barba
+  if (r.body === 'dwarf' || r.beard) {
+    px(hx, top + 9, hw, 4, r.hair) // barba
+    px(hx + 2, top + 13, hw - 4, 1, shade(r.hair, -20))
+  }
+  if (r.body === 'minotaur') {
+    px(hx + 2, top + 8, hw - 4, 3, shade(skin, 25)) // focinho
+    px(hx + 3, top + 9, 1, 1, '#111')
+    px(hx + hw - 4, top + 9, 1, 1, '#111')
+    px(hx - 3, top + 2, 3, 2, '#e7e5e4')
+    px(hx - 4, top, 2, 2, '#e7e5e4')
+    px(hx + hw, top + 2, 3, 2, '#e7e5e4')
+    px(hx + hw + 2, top, 2, 2, '#e7e5e4')
+  }
+  if (r.body === 'golem') {
+    px(hx, top + 3, hw, 1, shade(skin, -40))
+    px(hx + 2, top + 6, 2, 2, '#fbbf24')
+    px(hx + hw - 4, top + 6, 2, 2, '#fbbf24')
+    px(bx + 3, top + 13, 3, 3, shade(skin, 30))
+  }
+  if (r.body === 'lizard') {
+    px(hx + hw - 1, top + 7, 3, 3, skin) // focinho
+    px(hx - 1, top + 2, hw + 2, 1, shade(skin, -30)) // crista
+    px(10, top + 22, 3, 2, skin) // cauda
+    px(8, top + 23, 2, 2, shade(skin, -20))
+  }
   if (bone) px(hx + 3, top + 9, hw - 6, 1, '#111')
 
   // cabelo / chapéu
-  if (!bone) {
-    if (r.hat === 'none' || r.hat === 'crown' || r.hat === 'horns') {
+  const noHair = bone || r.body === 'golem' || r.body === 'lizard' || r.body === 'minotaur' || r.hairStyle === 'bald'
+  if (!noHair && (r.hat === 'none' || r.hat === 'crown' || r.hat === 'horns')) {
+    const st = r.hairStyle ?? 'short'
+    if (st === 'mohawk') {
+      px(hx + Math.floor(hw / 2) - 1, top, 3, 4, r.hair)
+    } else {
       px(hx, top + 2, hw, 3, r.hair)
-      px(hx - 1, top + 3, 1, 5, r.hair)
-      px(hx + hw, top + 3, 1, 5, r.hair)
+      px(hx + 1, top + 2, hw - 2, 1, shade(r.hair, 30))
+      px(hx - 1, top + 3, 1, st === 'long' || st === 'braids' ? 9 : 5, r.hair)
+      px(hx + hw, top + 3, 1, st === 'long' || st === 'braids' ? 9 : 5, r.hair)
+      if (st === 'long') px(hx - 1, top + 11, hw + 2, 2, r.hair)
+      if (st === 'braids') {
+        px(hx - 2, top + 12, 2, 3, r.hair)
+        px(hx + hw, top + 12, 2, 3, r.hair)
+        px(hx - 2, top + 14, 2, 1, r.accent)
+        px(hx + hw, top + 14, 2, 1, r.accent)
+      }
     }
   }
+  // brilho na pele (volume)
+  if (!bone && r.body !== 'golem') px(hx + 1, top + 4, 1, 3, shade(skin, 22))
   if (r.hat === 'hood') {
     px(hx - 1, top + 1, hw + 2, 4, r.outfit)
     px(hx - 1, top + 4, 2, 7, r.outfit)
@@ -257,7 +328,32 @@ export function generateSpriteSheet(recipe: SpriteRecipe): HTMLCanvasElement {
       drawFrame(ctx, f * F, ri * F, recipe, pose)
     }
   })
+  outlineSheet(ctx, c.width, c.height)
   return c
+}
+
+/** Contorno escuro de 1 px em volta da silhueta: deixa o sprite nítido sobre qualquer mapa. */
+function outlineSheet(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const img = ctx.getImageData(0, 0, w, h)
+  const d = img.data
+  const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 200
+  const out = new Uint8ClampedArray(d)
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4
+      if (d[i + 3] > 200) continue
+      // não cruza a borda entre quadros
+      const fx = x % F
+      const fy = y % F
+      const n = (fx > 0 && solid(x - 1, y)) || (fx < F - 1 && solid(x + 1, y)) || (fy > 0 && solid(x, y - 1)) || (fy < F - 1 && solid(x, y + 1))
+      if (n) {
+        out[i] = 22
+        out[i + 1] = 16
+        out[i + 2] = 30
+        out[i + 3] = 255
+      }
+    }
+  ctx.putImageData(new ImageData(out, w, h), 0, 0)
 }
 
 export function spriteConfigFor(url: string): SpriteConfig {

@@ -188,6 +188,7 @@ function CreateCampaign({ open, onClose }: { open: boolean; onClose: () => void 
   const [name, setName] = useState('A Cripta do Rei Goblin')
   const [system, setSystem] = useState('tormenta20')
   const [sample, setSample] = useState(true)
+  const [seats, setSeats] = useState(4)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   return (
@@ -200,6 +201,7 @@ function CreateCampaign({ open, onClose }: { open: boolean; onClose: () => void 
           setErr(null)
           try {
             const c = await backend.createCampaign(name, system, user.name)
+            await backend.upsert('campaigns', { ...c, max_players: seats })
             nav(`/c/${c.id}${sample ? '?exemplo=1' : ''}`)
           } catch (e) {
             setErr((e as Error).message)
@@ -218,6 +220,15 @@ function CreateCampaign({ open, onClose }: { open: boolean; onClose: () => void 
               </option>
             ))}
           </Select>
+        </Field>
+        <Field label="Quantos jogadores?" hint="Vagas na mesa (sem contar você, o mestre). Dá para mudar depois.">
+          <div className="flex flex-wrap gap-1.5">
+            {[2, 3, 4, 5, 6, 8].map((n) => (
+              <button type="button" key={n} onClick={() => setSeats(n)} className={`size-10 rounded-xl text-sm font-bold ${seats === n ? 'bg-gold-500 text-ink-950' : 'bg-ink-700'}`}>
+                {n}
+              </button>
+            ))}
+          </div>
         </Field>
         <label className="flex items-start gap-3 rounded-lg border border-ink-600 p-3 cursor-pointer">
           <input type="checkbox" className="mt-1 accent-arcane-500" checked={sample} onChange={(e) => setSample(e.target.checked)} />

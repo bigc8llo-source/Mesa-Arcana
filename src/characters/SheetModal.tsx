@@ -103,7 +103,7 @@ function Section({ title, children, action }: { title: string; children: ReactNo
 
 // ============================================================ D&D 5e
 
-function DndSheet({ c, sheet, patch, editable, roll }: { c: Character; sheet: Dnd5eSheet; patch: Patch; editable: boolean; roll: ReturnType<typeof useRoller> }) {
+function DndSheet({ c, sheet, patch, editable, playEditable = editable, roll }: { c: Character; sheet: Dnd5eSheet; patch: Patch; editable: boolean; playEditable?: boolean; roll: ReturnType<typeof useRoller> }) {
   const pb = profBonus(sheet.level)
   const set = <K extends keyof Dnd5eSheet>(k: K, v: Dnd5eSheet[K]) => patch((s) => ({ ...s, [k]: v }))
   return (
@@ -297,8 +297,8 @@ function DndSheet({ c, sheet, patch, editable, roll }: { c: Character; sheet: Dn
           </div>
         </Section>
         <Section title="Inventário e notas">
-          <Textarea disabled={!editable} rows={3} placeholder="Itens, ouro, equipamentos…" value={sheet.features} onChange={(e) => set('features', e.target.value)} />
-          <Textarea disabled={!editable} rows={3} className="mt-2" placeholder="Anotações" value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
+          <Textarea disabled={!playEditable} rows={3} placeholder="Itens, ouro, equipamentos…" value={sheet.features} onChange={(e) => set('features', e.target.value)} />
+          <Textarea disabled={!playEditable} rows={3} className="mt-2" placeholder="Anotações" value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
         </Section>
       </div>
     </div>
@@ -307,7 +307,7 @@ function DndSheet({ c, sheet, patch, editable, roll }: { c: Character; sheet: Dn
 
 // ============================================================ Genérico
 
-function GenericSheetView({ sheet, patch, editable, roll }: { sheet: GenericSheet; patch: Patch; editable: boolean; roll: ReturnType<typeof useRoller> }) {
+function GenericSheetView({ sheet, patch, editable, playEditable = editable, roll }: { sheet: GenericSheet; patch: Patch; editable: boolean; playEditable?: boolean; roll: ReturnType<typeof useRoller> }) {
   const set = <K extends keyof GenericSheet>(k: K, v: GenericSheet[K]) => patch((s) => ({ ...s, [k]: v }))
   return (
     <div className="grid gap-3 md:grid-cols-2">
@@ -371,7 +371,7 @@ function GenericSheetView({ sheet, patch, editable, roll }: { sheet: GenericShee
         </div>
       </Section>
       <Section title="Anotações">
-        <Textarea disabled={!editable} rows={6} value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
+        <Textarea disabled={!playEditable} rows={6} value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
       </Section>
     </div>
   )
@@ -379,7 +379,7 @@ function GenericSheetView({ sheet, patch, editable, roll }: { sheet: GenericShee
 
 // ============================================================ Tormenta20
 
-function T20SheetView({ c, sheet, patch, editable, roll }: { c: Character; sheet: T20Sheet; patch: Patch; editable: boolean; roll: ReturnType<typeof useRoller> }) {
+function T20SheetView({ c, sheet, patch, editable, playEditable = editable, roll }: { c: Character; sheet: T20Sheet; patch: Patch; editable: boolean; playEditable?: boolean; roll: ReturnType<typeof useRoller> }) {
   const set = <K extends keyof T20Sheet>(k: K, v: T20Sheet[K]) => patch((s) => ({ ...s, [k]: v }))
   const recalc = (next: Partial<T20Sheet>) =>
     patch((s) => {
@@ -593,8 +593,8 @@ function T20SheetView({ c, sheet, patch, editable, roll }: { c: Character; sheet
           </div>
         </Section>
         <Section title="Inventário e notas">
-          <Textarea disabled={!editable} rows={3} placeholder="Equipamento, T$, itens…" value={sheet.inventory} onChange={(e) => set('inventory', e.target.value)} />
-          <Textarea disabled={!editable} rows={3} className="mt-2" placeholder="Anotações" value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
+          <Textarea disabled={!playEditable} rows={3} placeholder="Equipamento, T$, itens…" value={sheet.inventory} onChange={(e) => set('inventory', e.target.value)} />
+          <Textarea disabled={!playEditable} rows={3} className="mt-2" placeholder="Anotações" value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
         </Section>
       </div>
     </div>
@@ -619,6 +619,8 @@ function SheetBody({ c, onClose }: { c: Character; onClose: () => void }) {
   const userId = useGame((s) => s.user?.id)
   const members = useGame((s) => s.members)
   const editable = gm || c.owner_id === userId
+  // jogador: joga com a ficha (vida, PM, notas), mas atributos, classe, ataques e poderes só o mestre muda
+  const coreEditable = gm
   const { sheet, patch } = useSheetDraft(c)
   const [anim, setAnim] = useState<SpriteAnimName>('idle')
   const roll = useRoller(c, setAnim)
@@ -787,11 +789,11 @@ function SheetBody({ c, onClose }: { c: Character; onClose: () => void }) {
 
       <div className="min-w-0">
         {c.system_id === 'tormenta20' ? (
-          <T20SheetView c={c} sheet={asT20(sheet)} patch={patch} editable={editable} roll={roll} />
+          <T20SheetView c={c} sheet={asT20(sheet)} patch={patch} editable={coreEditable} playEditable={editable} roll={roll} />
         ) : c.system_id === 'dnd5e' ? (
-          <DndSheet c={c} sheet={asDnd(sheet)} patch={patch} editable={editable} roll={roll} />
+          <DndSheet c={c} sheet={asDnd(sheet)} patch={patch} editable={coreEditable} playEditable={editable} roll={roll} />
         ) : (
-          <GenericSheetView sheet={asGeneric(sheet)} patch={patch} editable={editable} roll={roll} />
+          <GenericSheetView sheet={asGeneric(sheet)} patch={patch} editable={coreEditable} playEditable={editable} roll={roll} />
         )}
         {sys.attribution && <p className="mt-3 text-[10px] text-ink-500">{sys.attribution}</p>}
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Box,
@@ -35,6 +35,8 @@ import { MapView } from '../table/MapView'
 import { TheaterView } from '../table/TheaterView'
 import { TokenMenu } from '../table/TokenMenu'
 import { TurnBar } from '../table/TurnBar'
+import { DiceFab } from '../dice/DicePicker'
+import { MySheetPanel, PowersPanel, useMyCharacter } from '../panels/PlayerPanels'
 import { BuildPalette } from '../builder/BuildPalette'
 import { DiceOverlay } from '../dice/DiceOverlay'
 import { ChatPanel } from '../panels/ChatPanel'
@@ -51,7 +53,7 @@ import { backend } from '../data'
 import { snapToGrid } from '../engine/geometry'
 import { initPhysics } from '../dice/simulate'
 
-type PanelTab = 'chat' | 'chars' | 'combat' | 'scenes'
+type PanelTab = 'chat' | 'chars' | 'combat' | 'scenes' | 'me' | 'powers'
 
 const TOOLS: { id: Tool; label: string; key: string; icon: React.ReactNode; gm?: boolean }[] = [
   { id: 'select', label: 'Selecionar e mover (V)', key: 'v', icon: <MousePointer2 size={18} /> },
@@ -201,7 +203,7 @@ function TopBar({ panelOpen, onTogglePanel, onHelp }: { panelOpen: boolean; onTo
         <Copy size={12} /> {copied ? 'Link copiado!' : <span className="font-mono">{campaign.invite_code}</span>}
       </button>
       <div className="ml-auto flex items-center gap-1">
-        <div className="mr-1 flex -space-x-2" title={presence.map((p) => p.name).join(', ')}>
+        <div className="mr-1 flex -space-x-2 max-sm:hidden" title={presence.map((p) => p.name).join(', ')}>
           {presence.slice(0, 6).map((p) => (
             <span key={p.user_id} className="grid size-7 place-items-center rounded-full border-2 border-ink-900 text-[11px] font-bold text-white" style={{ background: p.color }}>
               {p.name[0]?.toUpperCase()}
@@ -227,10 +229,10 @@ function TopBar({ panelOpen, onTogglePanel, onHelp }: { panelOpen: boolean; onTo
             <Users size={18} />
           </IconButton>
         )}
-        <IconButton label="Ajuda e atalhos (?)" onClick={onHelp}>
+        <IconButton label="Ajuda e atalhos (?)" onClick={onHelp} className="max-md:hidden">
           <HelpCircle size={18} />
         </IconButton>
-        <IconButton label={panelOpen ? 'Fechar painel' : 'Abrir painel'} onClick={onTogglePanel}>
+        <IconButton label={panelOpen ? 'Fechar painel' : 'Abrir painel'} onClick={onTogglePanel} className="max-md:hidden">
           {panelOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
         </IconButton>
       </div>
@@ -358,6 +360,18 @@ function useShortcuts() {
   }, [])
 }
 
+function useIsMobile() {
+  const q = '(max-width: 767px)'
+  const [m, setM] = useState(() => matchMedia(q).matches)
+  useEffect(() => {
+    const mq = matchMedia(q)
+    const f = () => setM(mq.matches)
+    mq.addEventListener('change', f)
+    return () => mq.removeEventListener('change', f)
+  }, [])
+  return m
+}
+
 export default function TablePage() {
   const { id = '' } = useParams()
   const nav = useNavigate()
@@ -370,7 +384,10 @@ export default function TablePage() {
   const gm = useIsGm()
   const tool = useGame((s) => s.tool)
   const [tab, setTab] = useState<PanelTab>('chat')
+  const isMobile = useIsMobile()
   const [panelOpen, setPanelOpen] = useState(() => innerWidth > 900)
+  const [toolsOpen, setToolsOpen] = useState(false)
+  const myChar = useMyCharacter()
   const [help, setHelp] = useState(false)
   const [panelW, setPanelWState] = useState(() => {
     const saved = Number(localStorage.getItem('mesa-arcana:panel-w'))
@@ -396,6 +413,12 @@ export default function TablePage() {
     return () => window.removeEventListener('open-help', f)
   }, [])
   const seeding = useCampaignBootstrap(id)
+  const [search] = useSearchParams()
+  const wantScene = search.get('cena')
+  const loadedScenes = useGame((s) => Object.keys(s.scenes).length)
+  useEffect(() => {
+    if (wantScene && loadedScenes && useGame.getState().scenes[wantScene]) useGame.getState().set({ viewSceneId: wantScene, tool: 'build' })
+  }, [wantScene, loadedScenes])
 
   // presença
   useEffect(() => {
@@ -458,12 +481,28 @@ export default function TablePage() {
       </div>
     )
 
-  const tabs: { id: PanelTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'chat', label: 'Chat', icon: <MessageSquare size={16} />, badge: unread.current },
-    { id: 'chars', label: 'Fichas', icon: <UserRound size={16} /> },
-    { id: 'combat', label: 'Combate', icon: <Swords size={16} /> },
-    ...(gm ? [{ id: 'scenes' as const, label: 'Cenas', icon: <MapIcon size={16} /> }] : []),
-  ]
+  // jogador vê só o chat, a própria ficha e as próprias magias
+  const tabs: { id: PanelTab; label: string; icon: React.ReactNode; badge?: number }[] = gm
+    ? [
+        { id: 'chat', label: 'Chat', icon: <MessageSquare size={16} />, badge: unread.current },
+        { id: 'chars', label: 'Fichas', icon: <UserRound size={16} /> },
+        { id: 'combat', label: 'Combate', icon: <Swords size={16} /> },
+        { id: 'scenes', label: 'Cenas', icon: <MapIcon size={16} /> },
+      ]
+    : [
+        { id: 'chat', label: 'Chat', icon: <MessageSquare size={16} />, badge: unread.current },
+        { id: 'me', label: 'Ficha', icon: <UserRound size={16} /> },
+        { id: 'powers', label: 'Magias', icon: <WandSparkles size={16} /> },
+      ]
+  const visibleTab = tabs.some((t) => t.id === tab) ? tab : 'chat'
+  const openTab = (t: PanelTab) => {
+    if (panelOpen && visibleTab === t && isMobile) setPanelOpen(false)
+    else {
+      setTab(t)
+      setPanelOpen(true)
+    }
+  }
+  const toolList = TOOLS.filter((t) => (gm ? true : ['select', 'ruler', 'ping'].includes(t.id)))
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-ink-950">
@@ -471,11 +510,26 @@ export default function TablePage() {
       <div className="relative flex min-h-0 flex-1">
         <main className="relative min-w-0 flex-1 overflow-hidden">
           {scene ? scene.kind === 'theater' ? <TheaterView scene={scene} /> : <MapView scene={scene} /> : <div className="grid h-full place-items-center text-parch-300">{seeding ? '' : 'Nenhuma cena ativa ainda.'}</div>}
-          {scene?.kind === 'map' && (
-            <nav className="panel absolute left-2 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-1 rounded-xl p-1 shadow-xl" aria-label="Ferramentas">
-              {TOOLS.filter((t) => !t.gm || gm).map((t, i) => (
+          {scene?.kind === 'map' && isMobile && (
+            <button
+              type="button"
+              onClick={() => setToolsOpen((v) => !v)}
+              className="panel absolute left-2 top-2 z-20 grid size-11 place-items-center rounded-xl shadow-xl"
+              aria-label="Ferramentas"
+              data-testid="tools-toggle"
+            >
+              {TOOLS.find((t) => t.id === tool)?.icon}
+            </button>
+          )}
+          {scene?.kind === 'map' && (!isMobile || toolsOpen) && (
+            <nav
+              className={cn('panel absolute z-20 flex flex-col gap-1 rounded-xl p-1 shadow-xl', isMobile ? 'left-2 top-14 max-h-[60%] overflow-y-auto' : 'left-2 top-1/2 -translate-y-1/2')}
+              aria-label="Ferramentas"
+              onClick={() => isMobile && setToolsOpen(false)}
+            >
+              {toolList.map((t, i) => (
                 <div key={t.id}>
-                  {t.gm && !TOOLS[i - 1]?.gm && <div className="my-1 h-px bg-ink-600" />}
+                  {t.gm && !toolList[i - 1]?.gm && <div className="my-1 h-px bg-ink-600" />}
                   <IconButton label={t.label} active={tool === t.id} onClick={() => useGame.getState().set({ tool: t.id })} data-testid={`tool-${t.id}`}>
                     {t.icon}
                   </IconButton>
@@ -487,6 +541,7 @@ export default function TablePage() {
           {scene?.kind === 'map' && gm && tool === 'build' && <BuildPalette scene={scene} />}
           {scene?.kind === 'map' && <ToolOptionsBar below={scene.combat.active} />}
           {scene?.kind === 'map' && <SelectionBar />}
+          {scene && !(gm && tool === 'build') && <DiceFab character={myChar} />}
           {seeding && (
             <div className="absolute inset-0 z-40 grid place-items-center bg-black/60 backdrop-blur-sm">
               <div className="panel flex items-center gap-3 rounded-2xl px-6 py-4">
@@ -497,11 +552,11 @@ export default function TablePage() {
         </main>
         <aside
           className={cn(
-            'panel relative z-20 flex max-w-[92vw] shrink-0 flex-col border-y-0 border-r-0',
-            'max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:shadow-2xl',
+            'panel z-20 flex shrink-0 flex-col',
+            isMobile ? 'absolute inset-x-0 bottom-0 top-[18%] rounded-t-2xl border-b-0 shadow-2xl' : 'relative max-w-[92vw] border-y-0 border-r-0',
             !panelOpen && 'hidden',
           )}
-          style={{ width: panelW }}
+          style={isMobile ? undefined : { width: panelW }}
         >
           <div
             className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-arcane-500/40 max-md:hidden"
@@ -518,15 +573,38 @@ export default function TablePage() {
               addEventListener('pointerup', up)
             }}
           />
-          <Tabs tabs={tabs} value={tab} onChange={setTab} />
+          {isMobile ? (
+            <button type="button" className="mx-auto my-1.5 h-1.5 w-12 rounded-full bg-ink-500" onClick={() => setPanelOpen(false)} aria-label="Fechar painel" />
+          ) : (
+            <Tabs tabs={tabs} value={visibleTab} onChange={setTab} />
+          )}
           <div className="min-h-0 flex-1">
-            {tab === 'chat' && <ChatPanel />}
-            {tab === 'chars' && <CharactersPanel />}
-            {tab === 'combat' && <CombatPanel />}
-            {tab === 'scenes' && gm && <ScenesPanel />}
+            {visibleTab === 'chat' && <ChatPanel />}
+            {visibleTab === 'chars' && <CharactersPanel />}
+            {visibleTab === 'combat' && <CombatPanel />}
+            {visibleTab === 'scenes' && <ScenesPanel />}
+            {visibleTab === 'me' && <MySheetPanel />}
+            {visibleTab === 'powers' && <PowersPanel />}
           </div>
         </aside>
       </div>
+      {isMobile && (
+        <nav className="panel z-30 flex h-14 shrink-0 items-stretch border-x-0 border-b-0" aria-label="Navegação">
+          {tabs.map((t) => (
+            <button
+              type="button"
+              key={t.id}
+              onClick={() => openTab(t.id)}
+              data-testid={`nav-${t.id}`}
+              className={cn('relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold', panelOpen && visibleTab === t.id ? 'text-gold-400' : 'text-parch-300')}
+            >
+              {t.icon}
+              {t.label}
+              {!!t.badge && <span className="absolute right-3 top-1 rounded-full bg-arcane-600 px-1.5 text-[9px] text-white">{t.badge}</span>}
+            </button>
+          ))}
+        </nav>
+      )}
       <DiceOverlay />
       <SheetModal />
       <TokenMenu />
@@ -545,7 +623,7 @@ function SelectionBar() {
   const [n, setN] = useState(5)
   if (!controllable.length) return null
   return (
-    <div className="panel absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-xl px-3 py-2 shadow-xl animate-pop">
+    <div className="panel absolute bottom-3 left-1/2 z-20 flex max-w-[calc(100%-1rem)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl px-3 py-2 shadow-xl animate-pop">
       <span className="max-w-40 truncate text-sm font-semibold">{list.length === 1 ? list[0].name : `${list.length} selecionados`}</span>
       <input type="number" value={n} min={1} onChange={(e) => setN(Math.max(1, Number(e.target.value)))} className="w-14 rounded-md border border-ink-600 bg-ink-850 px-1 py-0.5 text-center text-sm" />
       <Button size="sm" variant="danger" onClick={() => changeHp(controllable.map((t) => t.id), -n)}>
@@ -559,6 +637,16 @@ function SelectionBar() {
           Ficha
         </Button>
       )}
+      {/* menu completo do token sem precisar de botão direito (celular) */}
+      <Button
+        size="sm"
+        variant="ghost"
+        aria-label="Mais opções"
+        data-testid="selection-more"
+        onClick={(e) => window.dispatchEvent(new CustomEvent('token-menu', { detail: { id: list[0].id, x: e.clientX - 120, y: e.clientY - 430 } }))}
+      >
+        ⋯
+      </Button>
     </div>
   )
 }

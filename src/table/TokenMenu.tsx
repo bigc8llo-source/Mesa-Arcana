@@ -39,7 +39,8 @@ export function TokenMenu() {
   const patch = (p: Partial<Token>) => ids.forEach((id) => void useGame.getState().patch('tokens', id, p))
   const toggleCond = (c: Condition) => patch({ conditions: token.conditions.includes(c) ? token.conditions.filter((x) => x !== c) : [...token.conditions, c] })
   const left = Math.min(state.x, innerWidth - 270)
-  const top = Math.min(state.y, innerHeight - 420)
+  const top = Math.max(8, Math.min(state.y, innerHeight - 420))
+  const leftSafe = Math.max(8, left)
 
   const Item = ({ icon, label, onClick, danger }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean }) => (
     <button
@@ -55,7 +56,7 @@ export function TokenMenu() {
   )
 
   return (
-    <div className="panel fixed z-50 w-64 rounded-xl p-2 shadow-2xl animate-pop" style={{ left, top }} onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div className="panel fixed z-50 w-64 rounded-xl p-2 shadow-2xl animate-pop" style={{ left: leftSafe, top }} onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       <p className="truncate px-2 pb-1 font-display text-gold-400">
         {token.name}
         {ids.length > 1 && <span className="text-xs text-parch-300"> (+{ids.length - 1})</span>}

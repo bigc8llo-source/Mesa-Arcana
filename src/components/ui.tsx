@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 
 export function cn(...a: Parameters<typeof clsx>) {
@@ -113,7 +114,8 @@ export function Modal({ open, onClose, title, children, wide, className }: { ope
     return () => window.removeEventListener('keydown', k)
   }, [open, onClose])
   if (!open) return null
-  return (
+  // portal: elementos com backdrop-filter "prendem" filhos position:fixed
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm p-3" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal className={cn('panel animate-pop rounded-2xl shadow-2xl w-full max-h-[92vh] flex flex-col', wide ? 'max-w-5xl' : 'max-w-lg', className)}>
         {title !== undefined && (
@@ -126,7 +128,8 @@ export function Modal({ open, onClose, title, children, wide, className }: { ope
         )}
         <div className="overflow-y-auto p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { EyeOff, Send } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import type { ChatMessage, RollResult } from '../types'
-import { useGame, useIsGm } from '../store/game'
+import { useGame } from '../store/game'
 import { handleChatInput, myCharacters, rollDice } from '../game/actions'
 import { isValidNotation } from '../engine/dice'
 import { Button, cn, Input } from '../components/ui'
+import { DicePicker } from '../dice/DicePicker'
 
 function RollCard({ roll }: { roll: RollResult }) {
   return (
@@ -69,7 +70,7 @@ export function ChatPanel() {
   const myId = useGame((s) => s.user?.id)
   const [text, setText] = useState('')
   const [err, setErr] = useState<string | null>(null)
-  const [charId, setCharId] = useState<string>('')
+  const [charId, setCharId] = useState<string>(() => myCharacters()[0]?.id ?? '')
   const end = useRef<HTMLDivElement>(null)
   const list = useMemo(() => Object.values(chat).sort((a, b) => a.created_at.localeCompare(b.created_at)).slice(-200), [chat])
   const mine = useGame(useShallow(() => myCharacters()))
@@ -102,7 +103,12 @@ export function ChatPanel() {
         ))}
         <div ref={end} />
       </div>
-      <DiceTray character={character} />
+      <details className="group border-t border-ink-700" open={innerWidth > 900}>
+        <summary className="cursor-pointer list-none px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-parch-300 hover:text-parch-100">🎲 Dados</summary>
+        <div className="px-2 pb-2">
+          <DicePicker compact character={character} />
+        </div>
+      </details>
       <form
         className="space-y-1.5 border-t border-ink-700 p-2"
         onSubmit={(e) => {
@@ -128,93 +134,6 @@ export function ChatPanel() {
         </div>
         {err && <p className="text-xs text-red-400">{err}</p>}
       </form>
-    </div>
-  )
-}
-
-const DICE = [4, 6, 8, 10, 12, 20, 100]
-
-function DieIcon({ sides }: { sides: number }) {
-  const shapes: Record<number, string> = {
-    4: '50,8 92,88 8,88',
-    6: '14,14 86,14 86,86 14,86',
-    8: '50,4 92,50 50,96 8,50',
-    10: '50,4 92,42 50,96 8,42',
-    12: '50,4 93,35 77,90 23,90 7,35',
-    20: '50,4 92,28 92,72 50,96 8,72 8,28',
-    100: '50,4 92,42 50,96 8,42',
-  }
-  return (
-    <svg viewBox="0 0 100 100" className="size-7">
-      <polygon points={shapes[sides]} className="fill-ink-700 stroke-gold-500" strokeWidth={5} />
-      <text x="50" y="62" textAnchor="middle" className="fill-parch-100" style={{ font: 'bold 30px Georgia' }}>
-        {sides === 100 ? '%' : sides}
-      </text>
-    </svg>
-  )
-}
-
-export function DiceTray({ character }: { character: import('../types').Character | null }) {
-  const gm = useIsGm()
-  const [pool, setPool] = useState<Record<number, number>>({})
-  const [mod, setMod] = useState(0)
-  const [secret, setSecret] = useState(false)
-  const notation = Object.entries(pool)
-    .filter(([, n]) => n > 0)
-    .map(([s, n]) => `${n}d${s}`)
-    .join('+')
-  const full = notation ? `${notation}${mod ? (mod > 0 ? `+${mod}` : mod) : ''}` : ''
-  const go = async (adv?: 'vantagem' | 'desvantagem') => {
-    const n = adv ? `1d20${mod ? (mod > 0 ? `+${mod}` : mod) : ''} ${adv}` : full
-    if (!n) return
-    await rollDice(n, { character, visibility: secret ? 'gm' : 'public', label: adv ? (adv === 'vantagem' ? 'Com vantagem' : 'Com desvantagem') : undefined })
-    setPool({})
-    setMod(0)
-  }
-  return (
-    <div className="border-t border-ink-700 p-2 space-y-2" data-testid="dice-tray">
-      <div className="flex flex-wrap items-center justify-between gap-1">
-        {DICE.map((s) => (
-          <button
-            key={s}
-            onClick={() => setPool((p) => ({ ...p, [s]: (p[s] ?? 0) + 1 }))}
-            onContextMenu={(e) => {
-              e.preventDefault()
-              setPool((p) => ({ ...p, [s]: Math.max(0, (p[s] ?? 0) - 1) }))
-            }}
-            className="relative rounded-md p-0.5 transition hover:scale-110 hover:bg-ink-700"
-            title={`Adicionar d${s} (botão direito remove)`}
-          >
-            <DieIcon sides={s} />
-            {!!pool[s] && <span className="absolute -right-1 -top-1 rounded-full bg-arcane-600 px-1 text-[10px] font-bold text-white">{pool[s]}</span>}
-          </button>
-        ))}
-      </div>
-      <div className="flex items-center gap-1.5">
-        <button className="rounded bg-ink-700 px-2 text-sm" onClick={() => setMod((m) => m - 1)}>
-          −
-        </button>
-        <span className="w-8 text-center text-sm font-mono">{mod >= 0 ? `+${mod}` : mod}</span>
-        <button className="rounded bg-ink-700 px-2 text-sm" onClick={() => setMod((m) => m + 1)}>
-          +
-        </button>
-        <Button variant="gold" size="sm" className="ml-auto flex-1" disabled={!full} onClick={() => go()} data-testid="roll-button">
-          Rolar {full}
-        </Button>
-      </div>
-      <div className="flex items-center gap-1.5 text-xs">
-        <Button size="sm" variant="ghost" onClick={() => go('vantagem')} title="2d20, fica o maior">
-          ⬆ Vantagem
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => go('desvantagem')} title="2d20, fica o menor">
-          ⬇ Desvantagem
-        </Button>
-        {gm && (
-          <label className="ml-auto flex items-center gap-1 text-parch-300">
-            <input type="checkbox" className="accent-arcane-500" checked={secret} onChange={(e) => setSecret(e.target.checked)} /> secreta
-          </label>
-        )}
-      </div>
     </div>
   )
 }
