@@ -23,6 +23,7 @@ import { formatMod } from '../engine/dice'
 import { asT20, halfLevel, t20Defense, t20mod, t20Resources, t20Skill, trainingBonus, T20_ATTRS, T20_CLASSES, T20_RACES, T20_SKILLS, type T20Sheet } from '../systems/tormenta20'
 import { placeToken, rollDice } from '../game/actions'
 import { AttackCard, DamageEditor } from './AttackCard'
+import { InventoryPanel } from './InventoryPanel'
 import { t20AttackView } from './attackViews'
 import { uid } from '../lib/id'
 import { Portrait, SpriteAnimator, TiltCard, type SpriteAnimName } from './SpriteView'
@@ -299,8 +300,11 @@ function DndSheet({ c, sheet, patch, editable, playEditable = editable, roll }: 
             ))}
           </div>
         </Section>
-        <Section title="Inventário e notas">
-          <Textarea disabled={!playEditable} rows={3} placeholder="Itens, ouro, equipamentos…" value={sheet.features} onChange={(e) => set('features', e.target.value)} />
+        <Section title="Inventário">
+          <InventoryPanel c={{ system_id: 'dnd5e' }} sheet={sheet as unknown as Record<string, unknown>} editable={playEditable} onPatch={(p) => patch((s) => ({ ...s, ...p }))} />
+        </Section>
+        <Section title="Características e notas">
+          <Textarea disabled={!playEditable} rows={3} placeholder="Características, itens antigos…" value={sheet.features} onChange={(e) => set('features', e.target.value)} />
           <Textarea disabled={!playEditable} rows={3} className="mt-2" placeholder="Anotações" value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
         </Section>
       </div>
@@ -372,6 +376,9 @@ function GenericSheetView({ sheet, patch, editable, playEditable = editable, rol
             </div>
           ))}
         </div>
+      </Section>
+      <Section title="Inventário">
+        <InventoryPanel c={{ system_id: 'generico' }} sheet={sheet as unknown as Record<string, unknown>} editable={playEditable} onPatch={(p) => patch((s) => ({ ...s, ...p }))} />
       </Section>
       <Section title="Anotações">
         <Textarea disabled={!playEditable} rows={6} value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
@@ -600,8 +607,12 @@ function T20SheetView({ c, sheet, patch, editable, playEditable = editable, roll
             })}
           </div>
         </Section>
-        <Section title="Inventário e notas">
-          <Textarea disabled={!playEditable} rows={3} placeholder="Equipamento, T$, itens…" value={sheet.inventory} onChange={(e) => set('inventory', e.target.value)} />
+        <Section title="Inventário">
+          <InventoryPanel c={{ system_id: 'tormenta20' }} sheet={sheet as unknown as Record<string, unknown>} editable={playEditable} onPatch={(p) => patch((s) => ({ ...s, ...p }))} />
+        </Section>
+        <Section title="Notas">
+          {sheet.inventory && <p className="mb-1 text-xs text-parch-300">Inventário antigo (texto), mantido como anotação:</p>}
+          <Textarea disabled={!playEditable} rows={3} placeholder="Anotações de equipamento…" value={sheet.inventory} onChange={(e) => set('inventory', e.target.value)} />
           <Textarea disabled={!playEditable} rows={3} className="mt-2" placeholder="Anotações" value={sheet.notes} onChange={(e) => set('notes', e.target.value)} />
         </Section>
       </div>

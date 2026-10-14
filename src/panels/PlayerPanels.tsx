@@ -13,6 +13,7 @@ import { playTokenAnim } from '../table/Tokens'
 import { CharacterWizard } from '../characters/CharacterWizard'
 import { AttackCard, NotationHint } from '../characters/AttackCard'
 import { attackViews } from '../characters/attackViews'
+import { InventoryPanel } from '../characters/InventoryPanel'
 
 export function useMyCharacter(): Character | null {
   const userId = useGame((s) => s.user?.id)
@@ -177,6 +178,11 @@ export function MySheetPanel() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-parch-300">Inventário</p>
+        <InventoryPanel c={c} sheet={c.sheet} editable onPatch={setSheet} />
       </div>
     </div>
   )

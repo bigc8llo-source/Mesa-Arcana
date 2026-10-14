@@ -65,7 +65,7 @@ test('mestre prepara campanha T20, jogador cria ficha no assistente e passa o pr
   expect(sheet.powers.map((p: any) => p.name)).toEqual(expect.arrayContaining(['Seta Infalível', 'Explosão de Chamas', 'Escudo Arcano']))
   expect(sheet.attrs.int).toBeGreaterThan(14)
   expect(sheet.pv_max).toBeGreaterThan(0)
-  expect(sheet.inventory).toContain('Livro raro')
+  expect(sheet.bag.map((i: { name: string }) => i.name)).toContain('Livro raro')
 
   // mestre inicia a sessão; jogador entra na mesa
   await gm.getByTestId('start-session').click()

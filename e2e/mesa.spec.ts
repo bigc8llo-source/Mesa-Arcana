@@ -47,6 +47,17 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await expect(card.getByText('Dano ao acertar')).toBeVisible()
   await expect(card.getByText(/Role um dado de 20 faces/)).toBeVisible()
   await expect(card.getByText(/Role 1 dado de \d+ faces/)).toBeVisible()
+  // inventário: itens empilháveis somam; moedas não pesam
+  const inv = pl.getByTestId('my-sheet').getByTestId('inventory')
+  await inv.getByLabel('Item da lista').selectOption('Poção de cura')
+  await inv.getByRole('button', { name: 'Adicionar', exact: true }).click()
+  await inv.getByRole('button', { name: 'Adicionar', exact: true }).click()
+  await expect(inv.getByTestId('item-row').filter({ hasText: 'Poção de cura' })).toContainText('×2')
+  const load = await inv.getByTestId('carry-load').textContent()
+  await inv.getByLabel('Item da lista').selectOption({ index: 1 })
+  await inv.getByRole('button', { name: 'Adicionar', exact: true }).click()
+  await expect(inv.getByTestId('coin-row')).toHaveCount(1)
+  await expect(inv.getByTestId('carry-load')).toHaveText(load!)
 
   // mestre leva todos para a masmorra
   await gm.getByRole('tab', { name: 'Cenas' }).click()

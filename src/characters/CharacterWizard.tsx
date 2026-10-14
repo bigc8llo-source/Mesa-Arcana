@@ -10,6 +10,7 @@ import { SYSTEMS } from '../systems'
 import { T20_ATTRS, t20mod, t20Resources, type T20Attr } from '../systems/tormenta20'
 import { ARMORS, CLASSES, CLASS_BY_ID, DEITIES, HAIR_COLORS, HAIR_STYLES, ORIGINS, POINT_BUY_TOTAL, POINT_COST, RACES, RACE_BY_ID, SKIN_TONES, WEAPONS, composeLook, defaultGear, pointsSpent, type HeroChoices } from '../systems/heroes'
 import { T20_SKILLS } from '../systems/tormenta20'
+import { starterBag } from '../systems/inventory'
 import { formatMod } from '../engine/dice'
 import { PLAYER_COLORS, uid } from '../lib/id'
 import { placeToken } from '../game/actions'
@@ -161,7 +162,7 @@ export function CharacterWizard({ open, onClose, onCreated }: { open: boolean; o
           deity: deity && deity.id !== 'nenhuma' ? deity.label : '',
           defense_armor: armor.defense + (ch.shield && shieldOk ? 2 : 0),
           armor_penalty: armor.penalty + (ch.shield && shieldOk ? 1 : 0),
-          inventory: [weapon.label, armor.label, ch.shield && shieldOk ? 'Escudo' : '', origin?.item ?? '', 'Mochila, saco de dormir, 3 dias de rações, 1d6+10 T$'].filter(Boolean).join('\n'),
+          inventory: '',
           pv: res.pv,
           pv_max: res.pv,
           pm: res.pm,
@@ -196,7 +197,7 @@ export function CharacterWizard({ open, onClose, onCreated }: { open: boolean; o
           attacks: [{ id: uid(), name: weapon.label, bonus: atkMod + prof, damage: `${weapon.damage}${atkMod ? (atkMod > 0 ? `+${atkMod}` : atkMod) : ''}`, type: weapon.crit }],
           spells: chosen.map((p) => ({ id: p.id, name: p.name, level: p.cost, notation: p.notation, description: p.description })),
           spell_ability: classDef.key[0],
-          features: [weapon.label, armor.label, ch.shield && shieldOk ? 'Escudo' : '', origin?.item ?? ''].filter(Boolean).join('\n'),
+          features: '',
           darkvision: raceDef.darkvision ?? 0,
         }
       } else {
@@ -213,10 +214,11 @@ export function CharacterWizard({ open, onClose, onCreated }: { open: boolean; o
             { id: uid(), name: `Dano: ${weapon.label}`, notation: weapon.damage },
             ...chosen.filter((p) => p.notation).map((p) => ({ id: p.id, name: p.name, notation: p.notation })),
           ],
-          inventory: [weapon.label, armor.label, origin?.item ?? ''].filter(Boolean).map((n) => ({ id: uid(), name: n, qty: 1, notes: '' })),
+          inventory: [],
           notes: [deity && deity.id !== 'nenhuma' ? `Devoto de ${deity.label}` : '', ...chosen.map((p) => `${p.name}: ${p.description}`)].filter(Boolean).join('\n'),
         }
       }
+      sheet = { ...sheet, bag: starterBag(system, { weapon, armor, shield: !!ch.shield && shieldOk, originItem: origin?.item }) }
       const c: Character = {
         id: uid(),
         campaign_id: campaign.id,
