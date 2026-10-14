@@ -279,7 +279,7 @@ export function FogLayer({ scene }: { scene: Scene }) {
   }, [])
   const dirty = useRef(true)
   const lastPos = useRef('')
-  const lastFlicker = useRef(0)
+  const glowMat = useRef<THREE.MeshBasicMaterial>(null)
   const setHidden = useVision((s) => s.set)
 
   useEffect(() => {
@@ -303,15 +303,19 @@ export function FogLayer({ scene }: { scene: Scene }) {
       .filter((t) => t.scene_id === scene.id && !t.hidden && t.light_dim > 0)
       .map((t) => ({ ...(displayPos.get(t.id) ?? { x: t.x, y: t.y }), bright: t.light_bright * cell, dim: t.light_dim * cell, color: '#ffb35c', flicker: true }))
     const lights = [...scene.lights.map((l) => ({ ...l, bright: l.bright * cell, dim: l.dim * cell })), ...tokenLights]
-    // redesenha se algo mudou (posições suavizadas) ou para o cintilar das tochas (~12 vezes/s)
-    const key = [...sources, ...tokenLights].map((s) => `${Math.round(s.x)},${Math.round(s.y)}`).join('|')
+    // cintilar das tochas: só a intensidade do brilho na GPU (barato)
     const now = clock.elapsedTime
-    const flicker = lights.some((l) => l.flicker) && scene.ambient < 1 && !useGame.getState().lowFx && now - lastFlicker.current > 0.08
-    if (!dirty.current && key === lastPos.current && !flicker) return
-    if (flicker) lastFlicker.current = now
+    if (glowMat.current) {
+      const base = scene.ambient < 1 ? 0.7 : 0.25
+      const flick = lights.some((l) => l.flicker) && !useGame.getState().lowFx
+      glowMat.current.opacity = flick ? base * (0.88 + 0.08 * Math.sin(now * 9) + 0.05 * Math.sin(now * 23)) : base
+    }
+    // redesenha só se algo mudou (inclusive posições suavizadas)
+    const key = [...sources, ...tokenLights].map((s) => `${Math.round(s.x)},${Math.round(s.y)}`).join('|')
+    if (!dirty.current && key === lastPos.current) return
     dirty.current = false
     lastPos.current = key
-    painter.paintLight(scene, lights, now)
+    painter.paintLight(scene, lights, 0)
     painter.paint(scene, sources, gm)
     texture.image = painter.fog
     texture.needsUpdate = true
@@ -339,7 +343,7 @@ export function FogLayer({ scene }: { scene: Scene }) {
       {/* brilho colorido das luzes, somado ao mapa */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[scene.map_w / 2, 3.5, scene.map_h / 2]} renderOrder={9}>
         <planeGeometry args={[scene.map_w, scene.map_h]} />
-        <meshBasicMaterial map={glowTex} transparent blending={THREE.AdditiveBlending} opacity={dark ? 0.7 : 0.25} depthWrite={false} depthTest={false} toneMapped={false} />
+        <meshBasicMaterial ref={glowMat} map={glowTex} transparent blending={THREE.AdditiveBlending} opacity={dark ? 0.7 : 0.25} depthWrite={false} depthTest={false} toneMapped={false} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[scene.map_w / 2, 4, scene.map_h / 2]} renderOrder={10}>
       <planeGeometry args={[scene.map_w, scene.map_h]} />
