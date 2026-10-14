@@ -1,0 +1,23 @@
+# Configuração mínima para `supabase start` (desenvolvimento local) e `supabase db push`.
+project_id = "mesa-arcana"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+port = 54323
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+enable_anonymous_sign_ins = true
+
+[auth.email]
+enable_signup = true
+
+[storage]
+file_size_limit = "20MiB"
