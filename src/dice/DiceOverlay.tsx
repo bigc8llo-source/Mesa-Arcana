@@ -128,7 +128,7 @@ function Scene3D({ job, onDone, onSettled }: { job: Job; onDone: () => void; onS
         onSettled()
       }
       t.current += dt
-      if (t.current > 2.2) onDone()
+      if (t.current > 3) onDone()
     }
   })
   return (
@@ -182,8 +182,12 @@ export function DiceOverlay() {
         setTimeout(() => setBadge((b) => (b?.id === m.id ? null : b)), 3000)
         continue
       }
-      const arenaW = 22 * Math.max(1, aspect) * 0.7
-      void simulate(dice, m.seed || 1, { w: arenaW, d: 22 }).then((sim) => setQueue((q) => [...q, { msg: m, sim, color, ink: inkFor(color) }]))
+      // arena proporcional à área visível (celular em pé = arena estreita e alta): dados sempre no centro da tela
+      const visibleD = 21
+      const visibleW = visibleD * aspect
+      const arenaW = Math.max(6, visibleW * (aspect < 1 ? 0.72 : 0.6))
+      const arenaD = visibleD * (aspect < 1 ? 0.55 : 0.75)
+      void simulate(dice, m.seed || 1, { w: arenaW, d: arenaD }).then((sim) => setQueue((q) => [...q, { msg: m, sim, color, ink: inkFor(color) }]))
     }
   }, [chat, members, lowFx, aspect])
 
@@ -191,7 +195,7 @@ export function DiceOverlay() {
   return (
     <>
       {job && (
-        <div className="pointer-events-none fixed inset-0 z-30" data-testid="dice-overlay">
+        <div className="pointer-events-none fixed inset-0 z-[90]" data-testid="dice-overlay">
           <Canvas shadows camera={{ fov: 45, position: [0, 26, 9] }} gl={{ alpha: true }}>
             <Scene3D
               key={job.msg.id}
@@ -210,7 +214,7 @@ export function DiceOverlay() {
         </div>
       )}
       {badge?.roll && (
-        <div className="pointer-events-none fixed left-1/2 top-[14%] z-40 -translate-x-1/2 animate-pop" data-testid="roll-badge">
+        <div className="pointer-events-none fixed left-1/2 top-[14%] z-[91] -translate-x-1/2 animate-pop" data-testid="roll-badge">
           <div
             className={cn(
               'rounded-2xl border px-6 py-3 text-center shadow-2xl backdrop-blur',

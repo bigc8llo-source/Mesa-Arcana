@@ -49,7 +49,9 @@ export const RECIPE_PRESETS: Record<string, { label: string; recipe: SpriteRecip
   trog: { label: 'Trog', recipe: { ...DEFAULT_RECIPE, body: 'lizard', skin: '#4d7c0f', outfit: '#3f3f46', accent: '#a3e635', weapon: 'mace', armor: 'leather' } },
 }
 
-const F = 32
+const F = 32 // unidades lógicas do desenho
+const SCALE = 2 // renderizado em 64×64 px por quadro: o dobro de detalhe
+const FP = F * SCALE
 const ROWS = [
   { name: 'idle', frames: 4, fps: 4 },
   { name: 'walk', frames: 4, fps: 8 },
@@ -117,6 +119,9 @@ function drawFrame(ctx: CanvasRenderingContext2D, ox: number, oy: number, r: Spr
     px(9, capeTop, 14, 16 - (short ? 3 : 0), shade(r.cape, -30))
     px(10, capeTop, 12, 15 - (short ? 3 : 0), r.cape)
     px(10, capeTop + 13 - (short ? 3 : 0), 12, 1, shade(r.cape, -45))
+    // dobras (atrás do corpo; só aparecem nas laterais)
+    px(9.5, capeTop + 2, 0.5, 12, shade(r.cape, -40))
+    px(22, capeTop + 2, 0.5, 12, shade(r.cape, -40))
   }
 
   // pernas
@@ -255,6 +260,39 @@ function drawFrame(ctx: CanvasRenderingContext2D, ox: number, oy: number, r: Spr
     px(hx + hw + 1, top - 1, 2, 2, '#e7e5e4')
   }
 
+  // ---- detalhes em meio-pixel (só aparecem graças à resolução 64 px)
+  if (!bone) {
+    const h = 0.5
+    // sobrancelhas, brilho nos olhos, boca e bochechas
+    if (r.body !== 'golem') {
+      px(hx + 2, top + 5, 2, h, shade(r.hair, -35))
+      px(hx + hw - 4, top + 5, 2, h, shade(r.hair, -35))
+      px(hx + 2, top + 6, h, h, '#ffffff')
+      px(hx + hw - 4, top + 6, h, h, '#ffffff')
+      if (!(r.body === 'dwarf' || r.beard)) px(hx + Math.floor(hw / 2) - 1, top + 9.5, 2, h, shade(skin, -70))
+      px(hx + 1, top + 8, 1, h, shade(skin, -18))
+      px(hx + hw - 2, top + 8, 1, h, shade(skin, -18))
+    }
+    // mechas no cabelo
+    if (!noHair && r.hairStyle !== 'mohawk' && (r.hat === 'none' || r.hat === 'crown' || r.hat === 'horns'))
+      for (let i = 1; i < hw - 1; i += 2) px(hx + i, top + 2.5, h, 2, shade(r.hair, -28))
+    // gola, dobras da roupa, fivela
+    px(bx + 2, top + 12, bw - 4, h, shade(outfit, 40))
+    px(bx + 2, top + 14, h, 4, shade(outfit, -22))
+    px(bx + bw - 3, top + 14, h, 4, shade(outfit, -22))
+    px(15.5, top + 18, 1, 1, '#fde68a')
+    px(15.75, top + 18.25, h, h, '#fffbeb')
+    // brilho no metal
+    if (r.armor === 'plate') {
+      px(bx + 2.5, top + 13, h, 2, '#ffffff')
+      px(bx - 2.5, top + 12, h, h, '#ffffff')
+      px(bx + bw + 0.5, top + 12, h, h, '#ffffff')
+    }
+    // botas
+    px(11.5, 28, 1.5, h, '#7c5a3a')
+    px(17.5, 28, 1.5, h, '#7c5a3a')
+  }
+
   // escudo
   if (r.shield) {
     px(bx - 5, top + 13, 5, 7, r.accent)
@@ -305,10 +343,11 @@ function drawFrame(ctx: CanvasRenderingContext2D, ox: number, oy: number, r: Spr
 export function generateSpriteSheet(recipe: SpriteRecipe): HTMLCanvasElement {
   const maxFrames = Math.max(...ROWS.map((r) => r.frames))
   const c = document.createElement('canvas')
-  c.width = F * maxFrames
-  c.height = F * ROWS.length
+  c.width = FP * maxFrames
+  c.height = FP * ROWS.length
   const ctx = c.getContext('2d')!
   ctx.imageSmoothingEnabled = false
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0)
   ROWS.forEach((row, ri) => {
     for (let f = 0; f < row.frames; f++) {
       const pose: Pose = { bob: 0, leg: 0, arm: 0, flash: false, fall: 0, glow: false }
@@ -328,8 +367,33 @@ export function generateSpriteSheet(recipe: SpriteRecipe): HTMLCanvasElement {
       drawFrame(ctx, f * F, ri * F, recipe, pose)
     }
   })
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  shadeSheet(ctx, c.width, c.height)
   outlineSheet(ctx, c.width, c.height)
   return c
+}
+
+/** Luz de cima e sombra embaixo em cada forma: dá volume ao pixel art. */
+function shadeSheet(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const img = ctx.getImageData(0, 0, w, h)
+  const d = img.data
+  const out = new Uint8ClampedArray(d)
+  const a = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : d[(y * w + x) * 4 + 3])
+  const adj = (i: number, k: number) => {
+    out[i] = Math.max(0, Math.min(255, d[i] + k))
+    out[i + 1] = Math.max(0, Math.min(255, d[i + 1] + k))
+    out[i + 2] = Math.max(0, Math.min(255, d[i + 2] + k))
+  }
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4
+      if (d[i + 3] < 200) continue
+      if (y % FP > 0 && a(x, y - 1) < 200) adj(i, 26) // borda de cima clareia
+      else if (y % FP < FP - 1 && a(x, y + 1) < 200) adj(i, -30) // borda de baixo escurece
+      else if (x % FP > 0 && a(x - 1, y) < 200) adj(i, 12)
+      else if (x % FP < FP - 1 && a(x + 1, y) < 200) adj(i, -16)
+    }
+  ctx.putImageData(new ImageData(out, w, h), 0, 0)
 }
 
 /** Contorno escuro de 1 px em volta da silhueta: deixa o sprite nítido sobre qualquer mapa. */
@@ -343,9 +407,9 @@ function outlineSheet(ctx: CanvasRenderingContext2D, w: number, h: number) {
       const i = (y * w + x) * 4
       if (d[i + 3] > 200) continue
       // não cruza a borda entre quadros
-      const fx = x % F
-      const fy = y % F
-      const n = (fx > 0 && solid(x - 1, y)) || (fx < F - 1 && solid(x + 1, y)) || (fy > 0 && solid(x, y - 1)) || (fy < F - 1 && solid(x, y + 1))
+      const fx = x % FP
+      const fy = y % FP
+      const n = (fx > 0 && solid(x - 1, y)) || (fx < FP - 1 && solid(x + 1, y)) || (fy > 0 && solid(x, y - 1)) || (fy < FP - 1 && solid(x, y + 1))
       if (n) {
         out[i] = 22
         out[i + 1] = 16
@@ -361,7 +425,7 @@ export function spriteConfigFor(url: string): SpriteConfig {
   ROWS.forEach((r, i) => {
     animations[r.name] = { row: i, frames: r.frames, fps: r.fps }
   })
-  return { url, frameW: F, frameH: F, directional: false, animations, credits: 'Gerado proceduralmente pela Mesa Arcana' }
+  return { url, frameW: FP, frameH: FP, directional: false, animations, credits: 'Gerado proceduralmente pela Mesa Arcana' }
 }
 
 /**

@@ -135,7 +135,7 @@ export async function handleChatInput(text: string, character: Character | null)
 export async function buildSpriteAssets(campaignId: string, recipe: SpriteRecipe, ring: string) {
   const sheet = generateSpriteSheet(recipe)
   const spriteUrl = await uploadCanvas(campaignId, 'sprite', sheet, true)
-  const token = makeTokenCanvas(sheet, 0, 0, 32, 32, ring, true)
+  const token = makeTokenCanvas(sheet, 0, 0, sheet.height / 6, sheet.height / 6, ring, true)
   const tokenUrl = await uploadCanvas(campaignId, 'token', token, true)
   return { sprite: spriteConfigFor(spriteUrl), tokenUrl }
 }

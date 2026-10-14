@@ -11,7 +11,8 @@ import { SheetModal } from '../characters/SheetModal'
 import { SYSTEMS, systemOf } from '../systems'
 import { backend } from '../data'
 import { inviteCode } from '../lib/id'
-import { systemMessage } from '../game/actions'
+import { buildSpriteAssets, systemMessage } from '../game/actions'
+import type { SpriteRecipe } from '../engine/sprites'
 import { CampaignPlanner, ChapterList } from './CampaignPlanner'
 
 function Card({ title, icon, children, action }: { title: string; icon: ReactNode; children: ReactNode; action?: ReactNode }) {
@@ -178,6 +179,20 @@ function GmPrep({ onOpenTable }: { onOpenTable: () => void }) {
         <Field label="Nome da campanha">
           <Input value={campaign.name} onChange={(e) => void useGame.getState().patch('campaigns', campaign.id, { name: e.target.value })} />
         </Field>
+        <Field label="Sistema de regras" hint="Vale para fichas novas; fichas já criadas mantêm o sistema delas.">
+          <select
+            value={campaign.system_id}
+            onChange={(e) => void useGame.getState().patch('campaigns', campaign.id, { system_id: e.target.value })}
+            className="w-full rounded-lg border border-ink-600 bg-ink-850 px-3 py-2 text-sm"
+            data-testid="campaign-system"
+          >
+            {Object.values(SYSTEMS).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </Field>
         <Field label="Apresentação (os jogadores veem)">
           <Textarea
             rows={3}
@@ -201,6 +216,7 @@ function GmPrep({ onOpenTable }: { onOpenTable: () => void }) {
           <MapIcon size={12} className="inline" /> {scenes.filter((s) => s.kind === 'map').length} mapas · <Clapperboard size={12} className="inline" /> {scenes.filter((s) => s.kind === 'theater').length} cenários · <Skull size={12} className="inline" /> {npcs.length} NPCs/criaturas
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
+          <UpgradeSpritesButton />
           <Button type="button" onClick={onOpenTable} data-testid="open-prep">
             <Wand2 size={16} /> Preparar na mesa
           </Button>
@@ -221,6 +237,34 @@ function GmPrep({ onOpenTable }: { onOpenTable: () => void }) {
         </div>
       </div>
     </Card>
+  )
+}
+
+/** Regenera em 64 px os sprites antigos (32 px) gerados pelo app. */
+function UpgradeSpritesButton() {
+  const old = useGame(useShallow((s) => Object.values(s.characters).filter((c) => c.sprite && c.sprite.frameW === 32 && c.sheet.recipe)))
+  const [busy, setBusy] = useState(false)
+  if (!old.length) return null
+  return (
+    <Button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          const s = useGame.getState()
+          for (const c of old) {
+            const { sprite, tokenUrl } = await buildSpriteAssets(c.campaign_id, c.sheet.recipe as SpriteRecipe, c.color)
+            await s.patch('characters', c.id, { sprite, token_url: tokenUrl })
+            for (const t of Object.values(s.tokens).filter((t) => t.character_id === c.id)) await s.patch('tokens', t.id, { image_url: tokenUrl })
+          }
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      {busy ? <Spinner /> : '✨'} Melhorar visual ({old.length} em 64 px)
+    </Button>
   )
 }
 

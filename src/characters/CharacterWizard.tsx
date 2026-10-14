@@ -23,7 +23,7 @@ function HeroPreview({ race, cls, ch = {}, size = 3, anim = 'idle' as const }: {
   const key = JSON.stringify(ch)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const sprite = useRecipePreview(useMemo(() => composeLook(race, cls, ch), [race, cls, key]))
-  return <SpriteAnimator sprite={sprite} scale={size} anim={anim} />
+  return <SpriteAnimator sprite={sprite} scale={(size * 32) / sprite.frameW} anim={anim} />
 }
 
 function PickCard({ active, onClick, children, testid }: { active: boolean; onClick: () => void; children: React.ReactNode; testid?: string }) {
@@ -170,15 +170,53 @@ export function CharacterWizard({ open, onClose, onCreated }: { open: boolean; o
           powers: chosen,
           darkvision: raceDef.darkvision ?? 0,
         }
-      else if (system === 'dnd5e')
+      else if (system === 'dnd5e') {
+        // D&D 5e: mesmas escolhas traduzidas para a ficha de D&D
+        const prof = 2
+        const con = Math.floor((finalAttrs.con - 10) / 2)
+        const dexMod = Math.floor((finalAttrs.des - 10) / 2)
+        const atkMod = Math.floor(((weapon.skill === 'pontaria' ? finalAttrs.des : finalAttrs.for) - 10) / 2)
+        const hitDie = Math.max(6, Math.min(12, Math.round(res.pv / 2)))
+        const map5e: Record<string, string> = { luta: 'atletismo', atletismo: 'atletismo', acrobacia: 'acrobacia', furtividade: 'furtividade', percepcao: 'percepcao', intimidacao: 'intimidacao', enganacao: 'enganacao', diplomacia: 'persuasao', atuacao: 'atuacao', misticismo: 'arcanismo', conhecimento: 'historia', religiao: 'religiao', cura: 'medicina', sobrevivencia: 'sobrevivencia', adestramento: 'adestrar', intuicao: 'intuicao', investigacao: 'investigacao', ladinagem: 'prestidigitacao', guerra: 'historia', nobreza: 'historia' }
+        const skills: Record<string, 1> = {}
+        for (const k of [...classDef.skills, ...(origin?.skills ?? [])]) if (map5e[k]) skills[map5e[k]] = 1
         sheet = {
           ...sheet,
           race: raceDef.label,
           class: cls,
+          level: 1,
+          background: origin?.label ?? '',
+          alignment: deity && deity.id !== 'nenhuma' ? `Devoto de ${deity.label}` : '',
           abilities: finalAttrs,
+          saves: classDef.key.slice(0, 2),
+          skills,
+          hp: hitDie + con,
+          hp_max: hitDie + con,
+          ac: 10 + dexMod + armor.defense + (ch.shield && shieldOk ? 2 : 0),
+          attacks: [{ id: uid(), name: weapon.label, bonus: atkMod + prof, damage: `${weapon.damage}${atkMod ? (atkMod > 0 ? `+${atkMod}` : atkMod) : ''}`, type: weapon.crit }],
           spells: chosen.map((p) => ({ id: p.id, name: p.name, level: p.cost, notation: p.notation, description: p.description })),
+          spell_ability: classDef.key[0],
+          features: [weapon.label, armor.label, ch.shield && shieldOk ? 'Escudo' : '', origin?.item ?? ''].filter(Boolean).join('\n'),
+          darkvision: raceDef.darkvision ?? 0,
         }
-      else sheet = { ...sheet, concept: `${raceDef.label} ${cls}`, actions: chosen.filter((p) => p.notation).map((p) => ({ id: p.id, name: p.name, notation: p.notation })) }
+      } else {
+        // Genérico: atributos com os nomes de Tormenta, vida, defesa, ações e equipamento
+        sheet = {
+          ...sheet,
+          concept: `${raceDef.label} ${cls}${origin ? ` (${origin.label})` : ''}`,
+          attributes: T20_ATTRS.map((a) => ({ id: uid(), name: a.full, value: t20mod(finalAttrs[a.key]) })),
+          hp: res.pv,
+          hp_max: res.pv,
+          defense: 10 + t20mod(finalAttrs.des) + armor.defense + (ch.shield && shieldOk ? 2 : 0),
+          actions: [
+            { id: uid(), name: `Ataque: ${weapon.label}`, notation: `1d20${formatMod(t20mod(weapon.skill === 'pontaria' ? finalAttrs.des : finalAttrs.for) + 2)}` },
+            { id: uid(), name: `Dano: ${weapon.label}`, notation: weapon.damage },
+            ...chosen.filter((p) => p.notation).map((p) => ({ id: p.id, name: p.name, notation: p.notation })),
+          ],
+          inventory: [weapon.label, armor.label, origin?.item ?? ''].filter(Boolean).map((n) => ({ id: uid(), name: n, qty: 1, notes: '' })),
+          notes: [deity && deity.id !== 'nenhuma' ? `Devoto de ${deity.label}` : '', ...chosen.map((p) => `${p.name}: ${p.description}`)].filter(Boolean).join('\n'),
+        }
+      }
       const c: Character = {
         id: uid(),
         campaign_id: campaign.id,
