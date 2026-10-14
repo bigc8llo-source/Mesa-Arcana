@@ -10,6 +10,7 @@ import { crossesWall, snapToGrid } from '../engine/geometry'
 import { letterTexture, useTexture } from './textures'
 import { displayPos, useHover, useVision } from './vision'
 import { interaction } from './camera'
+import { sfx } from '../audio/sfx'
 
 type Anim = 'idle' | 'walk' | 'attack' | 'hurt' | 'death' | 'cast'
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
@@ -110,7 +111,10 @@ function TokenView({ token, scene }: { token: Token; scene: Scene }) {
 
   // animações ligadas ao estado
   useEffect(() => {
-    if (hp.hp < prevHp.current) setAnim(hp.hp <= 0 ? 'death' : 'hurt')
+    if (hp.hp < prevHp.current) {
+      setAnim(hp.hp <= 0 ? 'death' : 'hurt')
+      if (hp.hp <= 0 && prevHp.current > 0) sfx('derrota')
+    }
     else if (hp.hp > prevHp.current && anim === 'death') setAnim('idle')
     prevHp.current = hp.hp
   }, [hp.hp])

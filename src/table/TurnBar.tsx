@@ -7,6 +7,7 @@ import { backend } from '../data'
 import { Portrait } from '../characters/SpriteView'
 import { Button, cn } from '../components/ui'
 import { useCamRequests } from './camera'
+import { sfx } from '../audio/sfx'
 
 /**
  * Barra de turnos no topo da mesa: ordem de iniciativa com retratos, quem joga agora,
@@ -32,6 +33,7 @@ export function TurnBar({ scene }: { scene: Scene }) {
     if (key === lastKey.current) return
     lastKey.current = key
     if (mine) {
+      sfx('suaVez')
       setMyTurnFlash(true)
       const t = setTimeout(() => setMyTurnFlash(false), 2600)
       return () => clearTimeout(t)

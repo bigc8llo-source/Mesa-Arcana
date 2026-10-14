@@ -29,6 +29,7 @@ import { SpriteEditor, type SpriteChoice } from './SpriteEditor'
 import { resolveSpriteChoice } from './spriteActions'
 import type { SpriteRecipe } from '../engine/sprites'
 import { DEFAULT_RECIPE } from '../engine/sprites'
+import { sfx } from '../audio/sfx'
 
 type Patch = (fn: (s: Record<string, unknown>) => Record<string, unknown>) => void
 
@@ -615,6 +616,7 @@ export function SheetModal() {
 }
 
 function SheetBody({ c, onClose }: { c: Character; onClose: () => void }) {
+  useEffect(() => sfx('livro', { volume: 0.7 }), [])
   const gm = useIsGm()
   const userId = useGame((s) => s.user?.id)
   const members = useGame((s) => s.members)

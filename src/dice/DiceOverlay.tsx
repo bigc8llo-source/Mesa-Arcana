@@ -6,6 +6,7 @@ import { useGame } from '../store/game'
 import { dieShape, labelTexture } from './diceGeometry'
 import { simulate, type SimResult } from './simulate'
 import { cn } from '../components/ui'
+import { sfx } from '../audio/sfx'
 
 const VISUAL = new Set([4, 6, 8, 10, 12, 20, 100])
 const MAX_VISUAL_DICE = 12
@@ -97,13 +98,30 @@ function Scene3D({ job, onDone, onSettled }: { job: Job; onDone: () => void; onS
   const frame = useRef(0)
   const t = useRef(0)
   const settled = useRef(false)
+  // sons de quique: quando um dado muda de direção vertical perto do chão
+  const lastVy = useRef<number[]>([])
+  useEffect(() => {
+    sfx('dadoAgitar', { volume: 0.5 })
+  }, [])
   const { camera } = useThree()
   useEffect(() => {
     camera.position.set(0, 26, 9)
     camera.lookAt(0, 0, 0)
   }, [camera])
   useFrame((_, dt) => {
+    const before = Math.floor(frame.current)
     frame.current += dt * 60
+    const now = Math.min(job.sim.frameCount - 1, Math.floor(frame.current))
+    for (let f = Math.max(1, before); f <= now; f++)
+      job.sim.dice.forEach((d, i) => {
+        const y0 = d.frames[(f - 1) * 7 + 1]
+        const y1 = d.frames[f * 7 + 1]
+        if (y1 === undefined) return
+        const vy = y1 - y0
+        const prevVy = lastVy.current[i] ?? 0
+        if (prevVy < -0.04 && vy > -0.005 && y1 < 2.2) sfx('dado', { volume: Math.min(1, -prevVy * 4), gap: 40 })
+        lastVy.current[i] = vy
+      })
     if (frame.current >= job.sim.frameCount - 1) {
       if (!settled.current) {
         settled.current = true
@@ -178,7 +196,11 @@ export function DiceOverlay() {
             <Scene3D
               key={job.msg.id}
               job={job}
-              onSettled={() => setBadge(job.msg)}
+              onSettled={() => {
+                setBadge(job.msg)
+                if (job.msg.roll?.crit === 'success') sfx('critico')
+                if (job.msg.roll?.crit === 'fail') sfx('falha')
+              }}
               onDone={() => {
                 setQueue((q) => q.slice(1))
                 setBadge((b) => (b?.id === job.msg.id ? null : b))

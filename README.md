@@ -11,6 +11,7 @@ Mesa virtual (VTT) para jogar RPG online com os amigos, no navegador, em portugu
 - **Construtor de mapas**: pinte salas, pisos, paredes, água e lava, e coloque mais de 60 objetos (portas, tochas, baús, móveis, natureza, masmorra), tudo em pixel art. Paredes, portas e tochas viram automaticamente paredes, portas e luzes da visão dinâmica.
 - **Saguão da campanha**: o mestre prepara tudo antes (descrição, mapas, NPCs, convites) e depois inicia a sessão. Os jogadores entram pelo link e criam a ficha num assistente passo a passo.
 - **Turnos**: barra de iniciativa no topo da mesa; o jogador da vez encerra o próprio turno.
+- **Efeitos sonoros reais** (Howler.js): dados quicando, críticos, golpes, dano, magias, portas, passos, sua vez, mensagens. Volume na janela de ajuda (`?`) e botão de som no topo.
 - **Importação do Dungeondraft** (`.dd2vtt` / `.uvtt`): mapa, paredes, portas e luzes chegam prontos.
 - **Sistemas de ficha**: **Tormenta20** (padrão: 29 perícias, PV/PM por classe, Defesa, poderes com custo em PM), D&D 5e (SRD 5.2, com bestiário) e uma ficha **Genérica**, que serve para qualquer jogo.
 - **Aventura de exemplo** pronta: taverna, masmorra com névoa e luzes, 4 heróis e monstros.
@@ -119,4 +120,5 @@ e2e/           testes ponta a ponta
 ## Licenças e créditos
 
 - Regras e criaturas de D&D: este conteúdo usa material do System Reference Document 5.2 ("SRD 5.2") da Wizards of the Coast LLC, disponível em https://www.dndbeyond.com/srd, licenciado sob CC-BY-4.0.
+- Efeitos sonoros: arquivos do projeto [Conquest](https://github.com/hoffspot/conquest) (Apache 2.0), montados a partir de gravações CC0/domínio público (Kenney, OpenGameArt, Freesound e outros). Detalhes em `public/sfx/CREDITOS.md`.
 - Os sprites gerados pelo app são originais. Folhas do gerador **Universal LPC** são CC-BY-SA 3.0 / GPL 3.0: preencha os créditos dos artistas ao usá-las.

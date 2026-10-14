@@ -36,6 +36,8 @@ import { TheaterView } from '../table/TheaterView'
 import { TokenMenu } from '../table/TokenMenu'
 import { TurnBar } from '../table/TurnBar'
 import { DiceFab } from '../dice/DicePicker'
+import { useGameSounds } from '../audio/useGameSounds'
+import { setSfxPrefs, sfx, sfxPrefs } from '../audio/sfx'
 import { MySheetPanel, PowersPanel, useMyCharacter } from '../panels/PlayerPanels'
 import { BuildPalette } from '../builder/BuildPalette'
 import { DiceOverlay } from '../dice/DiceOverlay'
@@ -174,9 +176,10 @@ function TopBar({ panelOpen, onTogglePanel, onHelp }: { panelOpen: boolean; onTo
   const scene = useScene()
   const viewSceneId = useGame((s) => s.viewSceneId)
   const [copied, setCopied] = useState(false)
-  const [muted, setMuted] = useState(false)
+  const [muted, setMuted] = useState(() => sfxPrefs().muted)
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('audio-mute', { detail: muted }))
+    setSfxPrefs({ muted })
   }, [muted])
   const link = `${location.origin}/convite/${campaign.invite_code}`
   return (
@@ -295,6 +298,22 @@ function HelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   ]
   return (
     <Modal open={open} onClose={onClose} title="Como jogar">
+      <label className="mb-4 flex items-center gap-3 rounded-lg border border-ink-700 p-3 text-sm">
+        🔊 Volume dos efeitos
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          defaultValue={sfxPrefs().volume}
+          onChange={(e) => {
+            setSfxPrefs({ volume: Number(e.target.value) })
+            sfx('dado')
+          }}
+          className="flex-1 accent-gold-500"
+          data-testid="sfx-volume"
+        />
+      </label>
       <table className="w-full text-sm">
         <tbody>
           {rows.map(([k, v]) => (
@@ -413,6 +432,7 @@ export default function TablePage() {
     return () => window.removeEventListener('open-help', f)
   }, [])
   const seeding = useCampaignBootstrap(id)
+  useGameSounds()
   const [search] = useSearchParams()
   const wantScene = search.get('cena')
   const loadedScenes = useGame((s) => Object.keys(s.scenes).length)

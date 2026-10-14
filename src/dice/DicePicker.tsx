@@ -4,6 +4,7 @@ import type { Character } from '../types'
 import { useGame, useIsGm } from '../store/game'
 import { rollDice } from '../game/actions'
 import { cn } from '../components/ui'
+import { sfx } from '../audio/sfx'
 
 const DICE = [4, 6, 8, 10, 12, 20, 100]
 
@@ -37,7 +38,10 @@ export function DicePicker({ character, onRolled, compact }: { character: Charac
   const [mod, setMod] = useState(0)
   const [mode, setMode] = useState<'normal' | 'vantagem' | 'desvantagem'>('normal')
   const [secret, setSecret] = useState(false)
-  const add = (s: number, d: number) => setPool((p) => ({ ...p, [s]: Math.max(0, Math.min(30, (p[s] ?? 0) + d)) }))
+  const add = (s: number, d: number) => {
+    sfx('clique', { volume: 0.4, gap: 30 })
+    setPool((p) => ({ ...p, [s]: Math.max(0, Math.min(30, (p[s] ?? 0) + d)) }))
+  }
   const total = Object.values(pool).reduce((a, b) => a + b, 0)
   const notation = Object.entries(pool)
     .filter(([, n]) => n > 0)

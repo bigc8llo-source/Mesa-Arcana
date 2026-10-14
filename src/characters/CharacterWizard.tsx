@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, Minus, Plus, Sparkles, Wand2 } from 'lucide-react'
 import type { Character } from '../types'
 import { activeSceneId, useGame } from '../store/game'
@@ -13,6 +13,7 @@ import { T20_SKILLS } from '../systems/tormenta20'
 import { formatMod } from '../engine/dice'
 import { PLAYER_COLORS, uid } from '../lib/id'
 import { placeToken } from '../game/actions'
+import { sfx } from '../audio/sfx'
 
 type Step = 'race' | 'class' | 'origin' | 'deity' | 'attrs' | 'powers' | 'equip' | 'look' | 'review'
 const STEP_TITLES: Record<Step, string> = { race: 'Raça', class: 'Classe', origin: 'Origem', deity: 'Divindade', attrs: 'Atributos', powers: 'Poderes', equip: 'Equipamento', look: 'Nome e aparência', review: 'Revisão' }
@@ -70,6 +71,9 @@ export function CharacterWizard({ open, onClose, onCreated }: { open: boolean; o
   const raceDef = RACE_BY_ID[race]
   const classDef = CLASS_BY_ID[cls]
   const idx = steps.indexOf(step)
+  useEffect(() => {
+    if (open) sfx('pagina', { volume: 0.6 })
+  }, [step, open])
   const spent = pointsSpent(base)
   const left = POINT_BUY_TOTAL - spent
   const finalAttrs = useMemo(() => {
@@ -194,6 +198,7 @@ export function CharacterWizard({ open, onClose, onCreated }: { open: boolean; o
       const sid = activeSceneId(s)
       const sc = sid ? s.scenes[sid] : null
       if (sc?.kind === 'map') await placeToken(c, sc.map_w / 2, sc.map_h / 2, sc.id).catch(() => null)
+      sfx('personagemCriado')
       onCreated?.(c)
       onClose()
     } catch (e) {
