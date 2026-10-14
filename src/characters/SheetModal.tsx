@@ -22,6 +22,8 @@ import {
 import { formatMod } from '../engine/dice'
 import { asT20, halfLevel, t20Defense, t20mod, t20Resources, t20Skill, trainingBonus, T20_ATTRS, T20_CLASSES, T20_RACES, T20_SKILLS, type T20Sheet } from '../systems/tormenta20'
 import { placeToken, rollDice } from '../game/actions'
+import { AttackCard, DamageEditor } from './AttackCard'
+import { t20AttackView } from './attackViews'
 import { uid } from '../lib/id'
 import { Portrait, SpriteAnimator, TiltCard, type SpriteAnimName } from './SpriteView'
 import { playTokenAnim } from '../table/Tokens'
@@ -213,36 +215,36 @@ function DndSheet({ c, sheet, patch, editable, playEditable = editable, roll }: 
         >
           <div className="space-y-2">
             {sheet.attacks.length === 0 && <p className="text-xs text-parch-300">Nenhum ataque.</p>}
-            {sheet.attacks.map((a, i) => (
-              <div key={a.id} className="rounded-lg border border-ink-700 p-2">
-                <div className="flex items-center gap-1">
-                  {editable ? (
-                    <Input className="py-1" value={a.name} onChange={(e) => set('attacks', sheet.attacks.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
-                  ) : (
-                    <p className="flex-1 font-semibold">{a.name}</p>
-                  )}
-                  {editable && (
-                    <button className="p-1 text-ink-500 hover:text-red-400" onClick={() => set('attacks', sheet.attacks.filter((x) => x.id !== a.id))} aria-label="Remover">
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-                {editable && (
-                  <div className="mt-1 grid grid-cols-3 gap-1">
-                    <NumberInput title="Bônus de ataque" value={a.bonus} onChange={(v) => set('attacks', sheet.attacks.map((x, j) => (j === i ? { ...x, bonus: v } : x)))} />
-                    <Input className="col-span-2 py-1 font-mono text-xs" title="Dano" value={a.damage} onChange={(e) => set('attacks', sheet.attacks.map((x, j) => (j === i ? { ...x, damage: e.target.value } : x)))} />
+            {sheet.attacks.map((a, i) => {
+              const upd = (p: Partial<Dnd5eSheet['attacks'][number]>) => set('attacks', sheet.attacks.map((x, j) => (j === i ? { ...x, ...p } : x)))
+              return (
+                <div key={a.id} className="rounded-lg border border-ink-700 p-2">
+                  <div className="mb-1.5 flex items-center gap-1">
+                    {editable ? <Input className="py-1" value={a.name} onChange={(e) => upd({ name: e.target.value })} /> : <p className="flex-1 font-semibold">{a.name}</p>}
+                    {editable && (
+                      <button type="button" className="p-1 text-ink-500 hover:text-red-400" onClick={() => set('attacks', sheet.attacks.filter((x) => x.id !== a.id))} aria-label="Remover">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
-                )}
-                <div className="mt-1.5 flex gap-1">
-                  <Button size="sm" variant="primary" className="flex-1" onClick={() => roll(`1d20${formatMod(a.bonus)}`, `Ataque: ${a.name}`)}>
-                    Acerto {formatMod(a.bonus)}
-                  </Button>
-                  <Button size="sm" variant="secondary" className="flex-1" onClick={() => roll(a.damage, `Dano: ${a.name}${a.type ? ` (${a.type})` : ''}`)}>
-                    Dano {a.damage}
-                  </Button>
+                  {editable && (
+                    <div className="mb-1.5 space-y-1">
+                      <label className="flex items-center gap-2 text-xs text-parch-300">
+                        Bônus de ataque (total)
+                        <span className="w-16">
+                          <NumberInput title="Bônus de ataque" value={a.bonus} onChange={(v) => upd({ bonus: v })} />
+                        </span>
+                      </label>
+                      <DamageEditor a={a} onChange={upd} />
+                    </div>
+                  )}
+                  <AttackCard
+                    a={{ ...a, bonus: Number.isFinite(a.bonus) ? a.bonus : null, rule: 'dnd', bonusSource: 'Bônus total cadastrado (já inclui atributo e proficiência).' }}
+                    onRoll={(n, l) => roll(n, l)}
+                  />
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </Section>
         <Section
@@ -505,11 +507,11 @@ function T20SheetView({ c, sheet, patch, editable, playEditable = editable, roll
         >
           <div className="space-y-2">
             {sheet.attacks.map((a, i) => {
-              const bonus = t20Skill(sheet, a.skill) + a.extra
+              const extra = Number.isFinite(a.extra) ? a.extra : 0
               const upd = (p: Partial<T20Sheet['attacks'][number]>) => set('attacks', sheet.attacks.map((x, j) => (j === i ? { ...x, ...p } : x)))
               return (
                 <div key={a.id} className="rounded-lg border border-ink-700 p-2">
-                  <div className="flex items-center gap-1">
+                  <div className="mb-1.5 flex items-center gap-1">
                     {editable ? <Input className="py-1" value={a.name} onChange={(e) => upd({ name: e.target.value })} /> : <p className="flex-1 font-semibold">{a.name}</p>}
                     {editable && (
                       <button type="button" className="p-1 text-ink-500 hover:text-red-400" onClick={() => set('attacks', sheet.attacks.filter((x) => x.id !== a.id))} aria-label="Remover">
@@ -518,23 +520,28 @@ function T20SheetView({ c, sheet, patch, editable, playEditable = editable, roll
                     )}
                   </div>
                   {editable && (
-                    <div className="mt-1 grid grid-cols-3 gap-1 text-xs">
-                      <Select className="py-1 text-xs" value={a.skill} onChange={(e) => upd({ skill: e.target.value as 'luta' | 'pontaria' })}>
-                        <option value="luta">Luta</option>
-                        <option value="pontaria">Pontaria</option>
-                      </Select>
-                      <Input className="py-1 font-mono text-xs" title="Dano" value={a.damage} onChange={(e) => upd({ damage: e.target.value })} />
-                      <Input className="py-1 font-mono text-xs" title="Crítico" value={a.crit} onChange={(e) => upd({ crit: e.target.value })} />
+                    <div className="mb-1.5 space-y-1 text-xs">
+                      <div className="grid grid-cols-3 gap-1">
+                        <label className="text-parch-300">
+                          Perícia
+                          <Select className="py-1 text-xs" value={a.skill} onChange={(e) => upd({ skill: e.target.value as 'luta' | 'pontaria' })}>
+                            <option value="luta">Luta</option>
+                            <option value="pontaria">Pontaria</option>
+                          </Select>
+                        </label>
+                        <label className="text-parch-300">
+                          Bônus extra
+                          <NumberInput title="Bônus extra no ataque (arma, magia…)" value={extra} onChange={(v) => upd({ extra: v })} />
+                        </label>
+                        <label className="text-parch-300">
+                          Crítico
+                          <Input className="py-1 font-mono text-xs" title="Crítico, ex.: 19/x2" value={a.crit} onChange={(e) => upd({ crit: e.target.value })} />
+                        </label>
+                      </div>
+                      <DamageEditor a={a} onChange={upd} />
                     </div>
                   )}
-                  <div className="mt-1.5 flex gap-1">
-                    <Button size="sm" variant="primary" className="flex-1" onClick={() => roll(`1d20${formatMod(bonus)}`, `Ataque: ${a.name} (crít. ${a.crit})`)}>
-                      Ataque {formatMod(bonus)}
-                    </Button>
-                    <Button size="sm" className="flex-1" onClick={() => roll(a.damage, `Dano: ${a.name}`)}>
-                      Dano {a.damage}
-                    </Button>
-                  </div>
+                  <AttackCard a={t20AttackView(sheet, a)} onRoll={(n, l) => roll(n, l)} />
                 </div>
               )
             })}

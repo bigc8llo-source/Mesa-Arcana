@@ -41,6 +41,12 @@ test('mestre cria aventura de exemplo e jogadora entra, joga e rola dados', asyn
   await pl.getByRole('tab', { name: 'Ficha' }).click()
   await pl.getByTestId('claim-Brunhilda').click()
   await expect(pl.getByTestId('my-sheet')).toBeVisible()
+  // ataque explicado: acerto separado do dano
+  const card = pl.getByTestId('my-sheet').getByTestId('attack-card').first()
+  await expect(card.getByText('Para acertar')).toBeVisible()
+  await expect(card.getByText('Dano ao acertar')).toBeVisible()
+  await expect(card.getByText(/Role um dado de 20 faces/)).toBeVisible()
+  await expect(card.getByText(/Role 1 dado de \d+ faces/)).toBeVisible()
 
   // mestre leva todos para a masmorra
   await gm.getByRole('tab', { name: 'Cenas' }).click()

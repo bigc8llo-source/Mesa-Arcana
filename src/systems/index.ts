@@ -1,6 +1,7 @@
 import type { Character } from '../types'
 import { formatMod } from '../engine/dice'
 import { uid } from '../lib/id'
+import type { DamagePart } from '../engine/damage'
 import { tormenta20 } from './tormenta20'
 
 /** Uma ação rolável exibida na ficha e no menu do token. */
@@ -66,6 +67,8 @@ export interface Attack {
   bonus: number
   damage: string
   type: string
+  /** Componentes de dano estruturados (opcional; fichas antigas só têm `damage`/`type`). */
+  damage_parts?: DamagePart[]
 }
 export interface Spell {
   id: string

@@ -1,6 +1,7 @@
 import type { SystemDef, Rollable } from './index'
 import { formatMod } from '../engine/dice'
 import { uid } from '../lib/id'
+import type { DamagePart } from '../engine/damage'
 
 /**
  * Tormenta20 — apenas mecânicas (números e nomes de regras), sem texto dos livros.
@@ -76,6 +77,8 @@ export interface T20Attack {
   id: string
   name: string
   skill: 'luta' | 'pontaria'
+  /** Componentes de dano estruturados (opcional; fichas antigas só têm `damage`). */
+  damage_parts?: DamagePart[]
   damage: string
   crit: string // ex.: "19/x2"
   extra: number

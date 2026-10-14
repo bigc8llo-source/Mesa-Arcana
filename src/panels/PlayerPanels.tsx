@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { Crosshair, FileText, Minus, Plus, Search, Sparkles, Swords, Wand2 } from 'lucide-react'
+import { FileText, Minus, Plus, Search, Sparkles, Swords, Wand2 } from 'lucide-react'
 import type { Character } from '../types'
 import { activeSceneId, emitLocalLive, useGame } from '../store/game'
 import { Button, cn, Empty, HpBar } from '../components/ui'
@@ -11,6 +11,8 @@ import { formatMod } from '../engine/dice'
 import { rollDice } from '../game/actions'
 import { playTokenAnim } from '../table/Tokens'
 import { CharacterWizard } from '../characters/CharacterWizard'
+import { AttackCard, NotationHint } from '../characters/AttackCard'
+import { attackViews } from '../characters/attackViews'
 
 export function useMyCharacter(): Character | null {
   const userId = useGame((s) => s.user?.id)
@@ -84,7 +86,7 @@ export function MySheetPanel() {
   const setSheet = (p: Record<string, unknown>) => void useGame.getState().patch('characters', c.id, { sheet: { ...c.sheet, ...p } })
   const hpKey = t20 ? 'pv' : 'hp'
   const rollables = sys.rollables(c.sheet)
-  const attacks = rollables.filter((r) => r.group === 'Ataques')
+  const attacks = attackViews(c)
   const skills = t20
     ? T20_SKILLS.filter((sk) => sk.label.toLowerCase().includes(q.toLowerCase())).map((sk) => ({ id: sk.key, label: sk.label, bonus: t20Skill(s20!, sk.key), trained: s20!.trained.includes(sk.key) }))
     : rollables.filter((r) => r.group !== 'Ataques' && r.label.toLowerCase().includes(q.toLowerCase())).map((r) => ({ id: r.id, label: r.label, bonus: Number(r.notation.replace('1d20', '')) || 0, trained: false }))
@@ -145,16 +147,9 @@ export function MySheetPanel() {
         </p>
         <div className="space-y-1.5">
           {attacks.map((a) => (
-            <div key={a.id} className="flex items-center gap-1.5">
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{a.label}</span>
-              <Button size="sm" variant="primary" onClick={() => act(c, a.notation, `Ataque: ${a.label}`, 'attack', 'slash')}>
-                <Crosshair size={12} /> {a.notation.replace('1d20', '')}
-              </Button>
-              {a.damage && (
-                <Button size="sm" onClick={() => act(c, a.damage!, `Dano: ${a.label}`, 'attack')}>
-                  {a.damage}
-                </Button>
-              )}
+            <div key={a.id} className="rounded-xl border border-ink-700 p-2">
+              <p className="mb-1 font-semibold">{a.name}</p>
+              <AttackCard a={a} onRoll={(n, l) => act(c, n, l, 'attack', l.startsWith('Ataque') ? 'slash' : undefined)} />
             </div>
           ))}
           {attacks.length === 0 && <p className="text-xs text-parch-300">Sem ataques.</p>}
@@ -227,6 +222,7 @@ export function PowersPanel() {
               {p.cost > 0 && <span className="text-xs text-sky-300">{p.cost} PM</span>}
             </p>
             {p.description && <p className="text-xs text-parch-300">{p.description}</p>}
+            <NotationHint notation={p.notation} />
             <Button
               size="md"
               variant="primary"
