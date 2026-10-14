@@ -460,7 +460,7 @@ function T20SheetView({ c, sheet, patch, editable, playEditable = editable, roll
         </Section>
         <Section title="Defesa">
           <div className="grid grid-cols-3 gap-2 text-xs">
-            <Field label="Armadura+escudo">
+            <Field label="Armadura">
               <NumberInput disabled={!editable} value={sheet.defense_armor} onChange={(v) => set('defense_armor', v)} />
             </Field>
             <Field label="Outros">

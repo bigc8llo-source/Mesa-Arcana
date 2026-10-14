@@ -133,7 +133,7 @@ function ItemRow({ it, unit, editable, onChange, onDelete, onSplit }: { it: InvI
             {it.stackable && <span className="ml-1 font-mono text-gold-400">×{it.qty}</span>}
           </span>
           <span className="block text-[11px] text-parch-300">
-            {KIND_LABEL[it.kind]} · {w > 0 ? `${fmt(w)} ${unit}${it.qty > 1 ? ` cada, ${fmt(w * it.qty)} no total` : ''}` : 'sem peso'}
+            {KIND_LABEL[it.kind]} · {w > 0 ? `${fmt(w)} ${w === 1 ? unit.replace(/s$/, '') : unit}${it.qty > 1 ? ` cada, ${fmt(w * it.qty)} no total` : ''}` : 'sem peso'}
             {it.equipped && ' · equipado'}
           </span>
         </button>
@@ -221,9 +221,9 @@ function AddItem({ systemId, onAdd, unit }: { systemId: string; onAdd: (it: InvI
         </Button>
       </div>
       {mode === 'lista' ? (
-        <div className="flex items-end gap-1">
+        <div className="flex flex-wrap items-end gap-1">
           <Select
-            className="min-w-0 flex-1 py-1 text-xs"
+            className="w-full py-1 text-xs"
             value={pick}
             aria-label="Item da lista"
             onChange={(e) => {
@@ -243,10 +243,10 @@ function AddItem({ systemId, onAdd, unit }: { systemId: string; onAdd: (it: InvI
               ))}
             </optgroup>
           </Select>
-          <span className="w-16">
+          <span className="w-20">
             <NumberInput title="Quantidade" value={qty} onChange={(v) => setQty(Math.max(1, v))} />
           </span>
-          <Button size="sm" variant="primary" disabled={!chosen} onClick={() => chosen && onAdd(fromCatalog(chosen, systemId, qty))}>
+          <Button size="sm" variant="primary" className="flex-1" disabled={!chosen} onClick={() => chosen && onAdd(fromCatalog(chosen, systemId, qty))}>
             <Plus size={12} /> Adicionar
           </Button>
         </div>
