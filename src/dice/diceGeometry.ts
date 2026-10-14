@@ -6,8 +6,10 @@ export interface DieShape {
   /** Faces lógicas: centro e normal em coordenadas locais. */
   faces: { center: THREE.Vector3; normal: THREE.Vector3 }[]
   hull: Float32Array
-  /** d4 lê o resultado pela face de baixo e mostra o número flutuando. */
+  /** d4: o resultado é o vértice de cima; cada face mostra os números dos seus 3 cantos. */
   readBottom: boolean
+  vertices: THREE.Vector3[]
+  faceVertices: number[][]
   labelScale: number
 }
 
@@ -113,7 +115,7 @@ export function dieShape(sides: number): DieShape {
   let labelScale = 0.55
   switch (sides) {
     case 4:
-      geo = new THREE.TetrahedronGeometry(1.2)
+      geo = new THREE.TetrahedronGeometry(1.6)
       break
     case 6:
       geo = new THREE.BoxGeometry(1.4, 1.4, 1.4).toNonIndexed()
@@ -141,7 +143,15 @@ export function dieShape(sides: number): DieShape {
   geo.computeVertexNormals()
   const faces = groupFaces(geo)
   const hull = new Float32Array(geo.attributes.position.array)
-  const shape: DieShape = { sides, geometry: geo, faces, hull, readBottom: sides === 4, labelScale }
+  // vértices únicos e quais pertencem a cada face (usado pelo d4)
+  const vertices: THREE.Vector3[] = []
+  const pos = geo.attributes.position
+  for (let i = 0; i < pos.count; i++) {
+    const v = new THREE.Vector3().fromBufferAttribute(pos, i)
+    if (!vertices.some((u) => u.distanceTo(v) < 1e-4)) vertices.push(v)
+  }
+  const faceVertices = faces.map((f) => vertices.map((v, i) => [i, Math.abs(v.clone().sub(f.center).dot(f.normal))] as const).filter(([, d]) => d < 1e-3).map(([i]) => i))
+  const shape: DieShape = { sides, geometry: geo, faces, hull, readBottom: sides === 4, labelScale, vertices, faceVertices }
   cache.set(sides, shape)
   return shape
 }

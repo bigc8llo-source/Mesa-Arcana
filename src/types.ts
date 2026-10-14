@@ -79,6 +79,8 @@ export interface Wall {
   y2: number
   kind: 'wall' | 'door' | 'window'
   open?: boolean
+  /** gerada pelo construtor de mapas (recriada quando o mapa muda) */
+  auto?: boolean
 }
 
 export interface Light {
@@ -89,6 +91,23 @@ export interface Light {
   dim: number
   color: string
   flicker: boolean
+  auto?: boolean
+}
+
+export interface BuildProp {
+  id: string
+  kind: string
+  x: number // célula
+  y: number
+}
+
+/** Mapa construído célula a célula no construtor. */
+export interface BuildData {
+  cols: number
+  rows: number
+  /** "x,y" → id da textura */
+  tiles: Record<string, string>
+  props: BuildProp[]
 }
 
 export interface FogShape {
@@ -142,6 +161,7 @@ export interface Scene {
   weather: Weather
   audio: AudioState
   combat: CombatState
+  build?: BuildData
   /** NPCs no palco do modo teatro. */
   stage?: string[]
   updated_at?: string

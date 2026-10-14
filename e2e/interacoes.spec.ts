@@ -94,7 +94,10 @@ test('interações no mapa: mover, paredes, menu do token, efeitos e novo person
   // menu do token: mestre oculta Sombra e a jogadora deixa de vê-la
   await gm.getByTestId('tool-select').click()
   const e = await anchor(gm, 'Sombra')
-  await gm.mouse.click(e.x, e.y, { button: 'right' })
+  await expect(async () => {
+    await gm.mouse.click(e.x, e.y, { button: 'right' })
+    await expect(gm.getByRole('button', { name: 'Ocultar dos jogadores' })).toBeVisible({ timeout: 2000 })
+  }).toPass({ timeout: 20_000 })
   await gm.getByRole('button', { name: 'Ocultar dos jogadores' }).click()
   await expect(pl.locator('[data-anchor="Sombra"]')).toHaveCount(0)
   await expect(gm.locator('[data-anchor="Sombra"]')).toHaveCount(1)

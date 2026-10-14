@@ -55,23 +55,35 @@ function Die({ die, color, ink, frameRef, index }: { die: SimResult['dice'][numb
     g.position.set(a[f * 7], a[f * 7 + 1], a[f * 7 + 2])
     g.quaternion.set(a[f * 7 + 3], a[f * 7 + 4], a[f * 7 + 5], a[f * 7 + 6])
   })
-  const labels = useMemo(
-    () =>
-      shape.faces.map((face, i) => {
-        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), face.normal)
-        return { pos: face.center.clone().addScaledVector(face.normal, 0.01), q, text: die.faceLabels[i] }
-      }),
-    [shape, die.faceLabels],
-  )
+  const labels = useMemo(() => {
+    if (shape.readBottom && die.vertexLabels) {
+      // d4: em cada face, um número perto de cada canto, "em pé" apontando para o canto
+      const out: { pos: THREE.Vector3; q: THREE.Quaternion; text: string }[] = []
+      shape.faces.forEach((face, fi) => {
+        for (const vi of shape.faceVertices[fi]) {
+          const v = shape.vertices[vi]
+          const up = v.clone().sub(face.center).normalize()
+          const z = face.normal.clone()
+          const x = new THREE.Vector3().crossVectors(up, z).normalize()
+          const m = new THREE.Matrix4().makeBasis(x, up, z)
+          out.push({ pos: face.center.clone().lerp(v, 0.5).addScaledVector(z, 0.01), q: new THREE.Quaternion().setFromRotationMatrix(m), text: die.vertexLabels![vi] })
+        }
+      })
+      return out
+    }
+    return shape.faces.map((face, i) => {
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), face.normal)
+      return { pos: face.center.clone().addScaledVector(face.normal, 0.01), q, text: die.faceLabels[i] }
+    })
+  }, [shape, die.faceLabels, die.vertexLabels])
   return (
     <group ref={ref} name={`die-${index}`}>
       <mesh geometry={shape.geometry} castShadow>
         <meshStandardMaterial color={color} metalness={0.25} roughness={0.35} flatShading />
       </mesh>
-      {!shape.readBottom &&
-        labels.map((l, i) =>
+      {labels.map((l, i) =>
           l.text ? (
-            <mesh key={i} position={l.pos} quaternion={l.q} scale={shape.labelScale}>
+            <mesh key={i} position={l.pos} quaternion={l.q} scale={shape.readBottom ? 0.55 : shape.labelScale}>
               <planeGeometry />
               <meshBasicMaterial map={labelTexture(l.text, ink)} transparent depthWrite={false} toneMapped={false} />
             </mesh>

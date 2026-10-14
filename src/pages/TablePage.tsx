@@ -26,6 +26,7 @@ import {
   Wifi,
   WifiOff,
   BrickWall,
+  Hammer,
 } from 'lucide-react'
 import { activeSceneId, trackPresence, useGame, useIsGm, useMe, useScene, type Tool } from '../store/game'
 import { useToolOptions } from '../store/tools'
@@ -34,6 +35,7 @@ import { MapView } from '../table/MapView'
 import { TheaterView } from '../table/TheaterView'
 import { TokenMenu } from '../table/TokenMenu'
 import { TurnBar } from '../table/TurnBar'
+import { BuildPalette } from '../builder/BuildPalette'
 import { DiceOverlay } from '../dice/DiceOverlay'
 import { ChatPanel } from '../panels/ChatPanel'
 import { CharactersPanel } from '../panels/CharactersPanel'
@@ -57,6 +59,7 @@ const TOOLS: { id: Tool; label: string; key: string; icon: React.ReactNode; gm?:
   { id: 'aoe', label: 'Área de efeito (A)', key: 'a', icon: <CircleDot size={18} /> },
   { id: 'spell', label: 'Efeitos de magia (E)', key: 'e', icon: <WandSparkles size={18} /> },
   { id: 'ping', label: 'Apontar (P) — ou Alt+clique', key: 'p', icon: <Crosshair size={18} /> },
+  { id: 'build', label: 'Construir mapa (B)', key: 'b', icon: <Hammer size={18} />, gm: true },
   { id: 'walls', label: 'Paredes e portas (W)', key: 'w', icon: <BrickWall size={18} />, gm: true },
   { id: 'fog', label: 'Névoa de guerra (F)', key: 'f', icon: <Cloud size={18} />, gm: true },
   { id: 'light', label: 'Luzes (L)', key: 'l', icon: <Lightbulb size={18} />, gm: true },
@@ -481,6 +484,7 @@ export default function TablePage() {
             </nav>
           )}
           {scene?.kind === 'map' && <TurnBar scene={scene} />}
+          {scene?.kind === 'map' && gm && tool === 'build' && <BuildPalette scene={scene} />}
           {scene?.kind === 'map' && <ToolOptionsBar below={scene.combat.active} />}
           {scene?.kind === 'map' && <SelectionBar />}
           {seeding && (

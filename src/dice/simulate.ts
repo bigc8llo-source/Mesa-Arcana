@@ -19,8 +19,10 @@ export interface SimDie {
   sides: number
   /** Valores a mostrar em cada face (índice = face lógica). */
   faceLabels: string[]
-  /** Face que ficou para cima (ou para baixo no d4). */
+  /** Face que ficou para cima (no d4: o vértice de cima). */
   resultFace: number
+  /** d4: número de cada vértice. */
+  vertexLabels?: string[]
   frames: Float32Array // [x,y,z,qx,qy,qz,qw] por quadro
 }
 
@@ -111,6 +113,20 @@ export async function simulate(dice: { sides: number; value: string; others: str
     for (let j = others.length - 1; j > 0; j--) {
       const r = Math.floor(rng() * (j + 1))
       ;[others[j], others[r]] = [others[r], others[j]]
+    }
+    if (shape.readBottom) {
+      // d4: o vértice mais alto mostra o resultado
+      let top = 0
+      let topY = -Infinity
+      shape.vertices.forEach((v, i) => {
+        const y = v.clone().applyQuaternion(q).y
+        if (y > topY) {
+          topY = y
+          top = i
+        }
+      })
+      const vertexLabels = shape.vertices.map((_, i) => (i === top ? d.value : (others.pop() ?? '')))
+      return { sides: d.sides, faceLabels: [], vertexLabels, resultFace: top, frames: f.slice(0, n * 7) }
     }
     const faceLabels = shape.faces.map((_, idx) => (idx === best ? d.value : (others.pop() ?? '')))
     return { sides: d.sides, faceLabels, resultFace: best, frames: f.slice(0, n * 7) }

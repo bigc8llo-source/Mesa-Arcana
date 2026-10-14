@@ -62,3 +62,26 @@ describe('áreas de efeito', () => {
     expect(inAoe('line', o, { x: 300, y: 0 }, { x: 150, y: 50 }, 70)).toBe(false)
   })
 })
+
+import { deriveFromBuild, emptyBuild, placeProp, room } from '../../builder/build'
+
+describe('construtor de mapas', () => {
+  it('gera paredes, porta que abre passagem e luz da tocha', () => {
+    let b = emptyBuild(20, 10)
+    b = room(b, 0, 0, 8, 6, 'pedra', 'parede_tijolo')
+    b = room(b, 8, 0, 16, 6, 'madeira', 'parede_tijolo')
+    b = placeProp(b, 8, 3, 'porta')
+    b = placeProp(b, 2, 2, 'tocha')
+    expect(b.tiles['8,3']).toBe('pedra') // a porta trocou a parede por piso
+    const d = deriveFromBuild(b, grid)
+    expect(d.lights).toHaveLength(1)
+    expect(d.walls.filter((w) => w.kind === 'door')).toHaveLength(1)
+    const doorWall = d.walls.find((w) => w.kind === 'door')!
+    expect(doorWall.x1).toBe(doorWall.x2) // porta vertical entre as salas
+    // fechada bloqueia; aberta deixa passar de uma sala à outra
+    const from = { x: 4 * 70, y: 3.5 * 70 }
+    const to = { x: 12 * 70, y: 3.5 * 70 }
+    expect(crossesWall(from, to, d.walls)).toBe(true)
+    expect(crossesWall(from, to, d.walls.map((w) => (w.kind === 'door' ? { ...w, open: true } : w)))).toBe(false)
+  })
+})

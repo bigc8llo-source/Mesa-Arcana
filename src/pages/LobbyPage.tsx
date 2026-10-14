@@ -150,7 +150,7 @@ function GmPrep({ onOpenTable }: { onOpenTable: () => void }) {
   const desc = campaign.description ?? ''
   const steps: { done: boolean; label: string; hint: string }[] = [
     { done: !!desc.trim(), label: 'Descrever a campanha', hint: 'Um parágrafo de apresentação para os jogadores.' },
-    { done: scenes.some((s) => s.kind === 'map' && s.map_url), label: 'Preparar mapas e cenários', hint: 'Abra a mesa em modo preparação e use o painel Cenas.' },
+    { done: scenes.some((s) => s.kind === 'map' && (s.map_url || Object.keys(s.build?.tiles ?? {}).length)), label: 'Preparar mapas e cenários', hint: 'Abra a mesa em modo preparação e use o painel Cenas.' },
     { done: npcs.length > 0, label: 'Criar NPCs e criaturas', hint: 'Fichas → NPC ou Bestiário.' },
     { done: members > 1, label: 'Convidar os jogadores', hint: 'Envie o link ou o código.' },
     { done: pcs.some((c) => c.owner_id), label: 'Jogadores criam suas fichas', hint: 'Cada jogador cria a ficha ao entrar.' },

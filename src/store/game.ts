@@ -16,7 +16,7 @@ export function emitLocalLive(e: LiveEvent) {
   liveListeners.forEach((l) => l(e))
 }
 
-export type Tool = 'select' | 'ruler' | 'aoe' | 'spell' | 'walls' | 'fog' | 'light' | 'ping'
+export type Tool = 'select' | 'ruler' | 'aoe' | 'spell' | 'walls' | 'fog' | 'light' | 'ping' | 'build'
 
 interface GameState {
   user: User | null

@@ -70,3 +70,11 @@ describe('dados', () => {
     expect(isValidNotation('2d20kl1 + 1d4 - 1')).toBe(true)
   })
 })
+
+describe('todos os tipos de dado', () => {
+  it.each([4, 6, 8, 10, 12, 20, 100])('d%i sai todos os valores', (sides) => {
+    const seen = new Set<number>()
+    for (let s = 1; s < 4000; s++) seen.add(roll(`1d${sides}`, s * 7919).total)
+    expect(seen.size).toBe(sides)
+  })
+})

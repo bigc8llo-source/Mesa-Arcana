@@ -9,6 +9,8 @@ import { useToolOptions } from '../store/tools'
 import { camState, interaction, screenToGround, useCamRequests } from './camera'
 import { useTexture } from './textures'
 import { TokenOverlay } from './Overlay'
+import { BuildLayer, useBuildDraft } from '../builder/BuildLayer'
+import { fill, paint, paintRect, placeProp, removeProp, sceneBuildPatch, emptyBuild } from '../builder/build'
 import { TokensLayer } from './Tokens'
 import { FogLayer } from './Fog'
 import { AoeShapeMesh, PingLayer, VfxLayer, VFX_LIST, WeatherLayer } from './Effects'
@@ -271,6 +273,7 @@ function useTableInput(scene: Scene, wrap: React.RefObject<HTMLDivElement | null
   const pan = useRef<{ anchor: Pt; moved: boolean; startClient: Pt; button: number } | null>(null)
   const pinch = useRef<{ dist: number; zoom: number } | null>(null)
   const toolDown = useRef<{ start: Pt } | null>(null)
+  const buildStart = useRef<{ cx: number; cy: number; base: import('../types').BuildData } | null>(null)
   const me = useMe()
 
   useEffect(() => {
@@ -352,6 +355,27 @@ function useTableInput(scene: Scene, wrap: React.RefObject<HTMLDivElement | null
           d.set({ chain: o.wallKind === 'wall' ? { pts: [...chain.pts, p], cursor: p } : null })
         } else d.set({ chain: { pts: [p], cursor: p } })
       }
+      if (tool === 'build' && isGmNow()) {
+        const G = scene.grid.size
+        const cx = Math.floor(g.x / G)
+        const cy = Math.floor(g.y / G)
+        const base = scene.build ?? emptyBuild(Math.ceil(scene.map_w / G), Math.ceil(scene.map_h / G))
+        const bd = useBuildDraft.getState()
+        if (o.buildMode === 'prop') {
+          const next = e.ctrlKey || e.metaKey ? removeProp(base, cx, cy) : placeProp(base, cx, cy, o.buildProp)
+          void s.patch('scenes', scene.id, sceneBuildPatch(scene, next))
+          toolDown.current = null
+          return
+        }
+        if (o.buildMode === 'fill') {
+          void s.patch('scenes', scene.id, sceneBuildPatch(scene, fill(base, cx, cy, o.buildTile)))
+          toolDown.current = null
+          return
+        }
+        buildStart.current = { cx, cy, base }
+        if (o.buildMode === 'brush' || o.buildMode === 'erase') bd.set(paint(base, cx, cy, o.buildBrush, o.buildMode === 'erase' ? null : o.buildTile))
+        else bd.set(paintRect(base, cx, cy, cx, cy, o.buildTile, o.buildMode === 'room' ? o.buildWall : undefined))
+      }
       if (tool === 'light' && isGmNow()) {
         if (e.ctrlKey || e.metaKey) {
           const near = scene.lights.map((l) => ({ l, d: Math.hypot(l.x - g.x, l.y - g.y) })).sort((a, b) => a.d - b.d)[0]
@@ -381,6 +405,17 @@ function useTableInput(scene: Scene, wrap: React.RefObject<HTMLDivElement | null
       if (d.chain && useGame.getState().tool === 'walls') d.set({ chain: { ...d.chain, cursor: snapCorner(g, scene, e.shiftKey) } })
       if (d.chain && useGame.getState().tool === 'fog') d.set({ chain: { ...d.chain, cursor: g } })
       if (!toolDown.current) return
+      if (buildStart.current) {
+        const o = useToolOptions.getState()
+        const G = scene.grid.size
+        const cx = Math.floor(g.x / G)
+        const cy = Math.floor(g.y / G)
+        const bd = useBuildDraft.getState()
+        const st = buildStart.current
+        if (o.buildMode === 'brush' || o.buildMode === 'erase') bd.set(paint(bd.draft ?? st.base, cx, cy, o.buildBrush, o.buildMode === 'erase' ? null : o.buildTile))
+        else bd.set(paintRect(st.base, st.cx, st.cy, cx, cy, o.buildTile, o.buildMode === 'room' ? o.buildWall : undefined))
+        return
+      }
       if (d.ruler) d.set({ ruler: { ...d.ruler, b: g } })
       if (d.aoe) d.set({ aoe: { ...d.aoe, t: g } })
       if (d.spell) d.set({ spell: { ...d.spell, b: g } })
@@ -418,6 +453,13 @@ function useTableInput(scene: Scene, wrap: React.RefObject<HTMLDivElement | null
       }
       if (!toolDown.current) return
       toolDown.current = null
+      if (buildStart.current) {
+        buildStart.current = null
+        const bd = useBuildDraft.getState()
+        const draft = bd.draft
+        if (draft) void s.patch('scenes', scene.id, sceneBuildPatch(scene, draft)).finally(() => bd.set(null))
+        return
+      }
       const d = useDraft.getState()
       const o = useToolOptions.getState()
       if (d.ruler) d.set({ ruler: null })
@@ -595,6 +637,7 @@ export function MapView({ scene }: { scene: Scene }) {
         <color attach="background" args={['#0d0b12']} />
         <CameraRig scene={scene} />
         <MapLayer scene={scene} />
+        <BuildLayer scene={scene} />
         <GridLayer scene={scene} />
         <TokensLayer />
         <FogLayer scene={scene} />
@@ -607,11 +650,12 @@ export function MapView({ scene }: { scene: Scene }) {
       </Canvas>
       <TokenOverlay scene={scene} getCamera={getCamera} />
       <MeasureLabel scene={scene} />
-      {!scene.map_url && gm && (
+      {!scene.map_url && !scene.build && gm && tool !== 'build' && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div className="w-72 rounded-xl border-2 border-dashed border-parch-300/40 bg-black/40 p-5 text-center text-sm text-parch-200">
             <p className="font-display text-lg text-gold-400">Arraste uma imagem aqui</p>
             <p>para usar como mapa (ou um arquivo .dd2vtt do Dungeondraft com paredes e luzes).</p>
+            <p className="mt-2 text-gold-400">Ou use o martelo 🔨 (tecla B) para construir o mapa com texturas e objetos.</p>
           </div>
         </div>
       )}

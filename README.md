@@ -8,8 +8,11 @@ Mesa virtual (VTT) para jogar RPG online com os amigos, no navegador, em portugu
 - **Dados 3D com física**, com o mesmo resultado na tela de todos. Também dá para rolar com notação, como `4d6kh3`, `1d20+5 vantagem` ou `3d6!`.
 - **Combate**: iniciativa automática, turnos com a câmera acompanhando, dano e cura rápidos e condições.
 - **Cenários**: modo teatro (ilustração de fundo com os personagens no palco e balões de fala), modo 2.5D (miniaturas em pé), clima (chuva, neve, neblina, brasas, folhas), efeitos de magia e trilha sonora por cena.
+- **Construtor de mapas**: pinte salas, pisos, paredes, água e lava, e coloque mais de 60 objetos (portas, tochas, baús, móveis, natureza, masmorra), tudo em pixel art. Paredes, portas e tochas viram automaticamente paredes, portas e luzes da visão dinâmica.
+- **Saguão da campanha**: o mestre prepara tudo antes (descrição, mapas, NPCs, convites) e depois inicia a sessão. Os jogadores entram pelo link e criam a ficha num assistente passo a passo.
+- **Turnos**: barra de iniciativa no topo da mesa; o jogador da vez encerra o próprio turno.
 - **Importação do Dungeondraft** (`.dd2vtt` / `.uvtt`): mapa, paredes, portas e luzes chegam prontos.
-- **Sistemas de ficha**: D&D 5e (SRD 5.2, com bestiário) e uma ficha **Genérica**, que serve para qualquer jogo.
+- **Sistemas de ficha**: **Tormenta20** (padrão: 29 perícias, PV/PM por classe, Defesa, poderes com custo em PM), D&D 5e (SRD 5.2, com bestiário) e uma ficha **Genérica**, que serve para qualquer jogo.
 - **Aventura de exemplo** pronta: taverna, masmorra com névoa e luzes, 4 heróis e monstros.
 
 O plano completo e as decisões de arquitetura estão em [`docs/PLANO.md`](docs/PLANO.md).
@@ -41,13 +44,13 @@ O banco fica num projeto Supabase seu. Nada é criado automaticamente: o schema 
      npx supabase link --project-ref SEU_REF    # o REF aparece na URL do painel
      npx supabase db push
      ```
-   - Ou cole o conteúdo de `supabase/migrations/20261014000000_schema.sql` no **SQL Editor** e execute.
+   - Ou cole no **SQL Editor**, nesta ordem, o conteúdo de `supabase/migrations/20261014000000_schema.sql` e de `supabase/migrations/20261015000000_turns.sql`, e execute.
 3. **Configure a autenticação** em *Authentication*:
    - em *Sign In / Providers*, ative **Email** (link mágico) e **Anonymous sign-ins** (para o "Entrar como convidado");
    - para entrar com Discord, ative o provedor **Discord**, com o Client ID e o Secret criados no [Discord Developer Portal](https://discord.com/developers/applications);
    - em *URL Configuration*, coloque a URL do site (por exemplo `https://mesa-arcana.vercel.app`) e `http://localhost:5173` nas Redirect URLs.
 4. **Configure o Realtime** em *Realtime → Settings*: deixe **desmarcada** a opção que permite acesso público a canais. O app usa canais privados autorizados por RLS.
-5. **Crie o `.env.local`** a partir do `.env.example`, com os dados de *Project Settings → API*:
+5. **Variáveis de ambiente.** Se você conectou o Supabase pela integração da Vercel, as variáveis `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_ANON_KEY` já servem: o app as reconhece e expõe ao navegador **só** a URL e a chave pública. Faça um novo deploy depois de conectar. Se o saguão mostrar o aviso "Modo demonstração", as variáveis não chegaram ao build e os convites só funcionarão no mesmo navegador. Para rodar localmente, crie o `.env.local` a partir do `.env.example`, com os dados de *Project Settings → API*:
    ```
    VITE_SUPABASE_URL=https://SEU_REF.supabase.co
    VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
@@ -73,7 +76,7 @@ O banco fica num projeto Supabase seu. Nada é criado automaticamente: o schema 
 | Ficha | Duplo clique no token, ou clique na lista **Fichas** |
 | Menu do token | Botão direito: vida, condições, ocultar, luz, visão… |
 | Apontar (ping) | Alt+clique |
-| Ferramentas | `V` selecionar · `R` régua · `A` área · `E` magia · `P` ping · `W` paredes · `F` névoa · `L` luz |
+| Ferramentas | `V` selecionar · `R` régua · `A` área · `E` magia · `P` ping · `B` construir mapa · `W` paredes · `F` névoa · `L` luz |
 | Chat | `2d6+3` rola · `/gr d20` rolagem secreta · `/w Nome msg` sussurro · `/me ri` |
 | Mapa / token | Arraste uma imagem ou um `.dd2vtt` para a mesa |
 | Token de personagem | Arraste o personagem da lista para o mapa |

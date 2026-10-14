@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Clapperboard, Copy, Eye, FileUp, Image, Map, Music, Pause, Play, Trash2, Users } from 'lucide-react'
+import { Hammer, Clapperboard, Copy, Eye, FileUp, Image, Map, Music, Pause, Play, Trash2, Users } from 'lucide-react'
 import type { Scene, Weather } from '../types'
 import { activeSceneId, useGame } from '../store/game'
 import { Button, cn, Field, Input, NumberInput, Select } from '../components/ui'
@@ -8,6 +8,7 @@ import { MAX_MAP_PX, pickFile, uploadImage } from '../lib/images'
 import { importUvtt } from '../table/drop'
 import { clearExploredFog } from '../table/Fog'
 import { uid } from '../lib/id'
+import { emptyBuild } from '../builder/build'
 import { backend } from '../data'
 
 const WEATHERS: { id: Weather; label: string }[] = [
@@ -44,6 +45,20 @@ export function ScenesPanel() {
       <div className="flex gap-1.5 border-b border-ink-700 p-2">
         <Button size="sm" variant="primary" onClick={() => create('map')}>
           <Map size={14} /> Mapa
+        </Button>
+        <Button
+          size="sm"
+          onClick={async () => {
+            const sc = defaultScene(campaign.id, 'Mapa construído')
+            sc.build = emptyBuild(30, 20)
+            sc.map_w = 30 * sc.grid.size
+            sc.map_h = 20 * sc.grid.size
+            await useGame.getState().save('scenes', sc)
+            useGame.getState().set({ viewSceneId: sc.id, tool: 'build' })
+          }}
+          title="Mapa em branco para montar com texturas e objetos"
+        >
+          <Hammer size={14} /> Construir
         </Button>
         <Button size="sm" onClick={() => create('theater')}>
           <Clapperboard size={14} /> Cenário (teatro)
